@@ -200,7 +200,15 @@
   </section>
 
   <section class="card">
-    <h2>11. Unterschriften</h2>
+    <h2>11. Abschließende Feststellung</h2>
+    <p><strong>Zustand bei der Abnahme / Übergabe</strong></p>
+    <label class="radio-line"><input type="radio" name="abschlusszustand" value="mangelfrei" data-save="abschlusszustand"> Bei der Abnahme / Übergabe wurden keine Mängel festgestellt.</label>
+    <label class="radio-line"><input type="radio" name="abschlusszustand" value="maengel" data-save="abschlusszustand"> Bei der Abnahme / Übergabe wurden Mängel festgestellt; diese sind im Protokoll dokumentiert.</label>
+    <div class="notice" style="margin-top:12px">Die vorstehende Auswahl bezieht sich auf den bei der Abnahme / Übergabe festgestellten und in diesem Protokoll dokumentierten Zustand. Weitergehende gesetzliche oder vertragliche Rechte und Pflichten bleiben unberührt.</div>
+  </section>
+
+  <section class="card">
+    <h2>12. Unterschriften</h2>
     <label>Weitere Vereinbarungen / Vorbehalte</label>
     <textarea data-save="vereinbarungen"></textarea>
 
@@ -226,7 +234,7 @@
   </section>
 
   <section class="card">
-    <h2>12. Verwaltung</h2>
+    <h2>13. Verwaltung</h2>
     <div class="notice"><strong>Eigentümer/in:</strong> <span id="ownerFooter">_____ Dahlbüdding</span><br>
     <strong>vertreten durch:</strong> Domoconzept Immobilien- und Verwaltungs GmbH &amp; Co. KG<br>
     Hörder Semerteichstraße 175, 44263 Dortmund</div>
@@ -262,9 +270,9 @@
 
 <script>
 const ROOMS = [
-  "Wohnzimmer","Schlafzimmer / Zimmer 1","Weiteres Zimmer",
-  "Küche / Küchenbereich","Flur / Diele","Badezimmer / WC",
-  "Balkon / Terrasse","Abstellraum / Keller"
+  "Wohnzimmer","Schlafzimmer / Zimmer 1","Küche / Küchenbereich",
+  "Kinderzimmer","Arbeitszimmer","Flur / Diele","Badezimmer / WC",
+  "Balkon / Terrasse","Abstellraum / Keller","Weiteres Zimmer"
 ];
 const CHECKS = ["Wände / Decke","Boden","Fenster / Verglasung","Türen / Zargen","Heizkörper","Steckdosen / Schalter"];
 const BATHROOM_CHECKS = ["Badewanne","Dusche","WC","Waschtisch","Wandfliesen","Bodenfliesen","Armaturen","Spiegel / Spiegelschrank"];
