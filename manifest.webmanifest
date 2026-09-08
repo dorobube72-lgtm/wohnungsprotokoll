@@ -1,9 +1,10 @@
 {
-  "name": "Wohnungsprotokoll Dahlbüdding",
+  "name": "Wohnungsprotokoll",
   "short_name": "Wohnungsprotokoll",
-  "start_url": "./index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f1eb",
+  "background_color": "#f4f5f7",
   "theme_color": "#f4f1eb",
   "description": "Mobiles Wohnungs-Abnahme- und Übergabeprotokoll",
   "icons": [

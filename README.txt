@@ -1,11 +1,13 @@
-Wohnungsprotokoll PWA
+Wohnungsprotokoll PWA – Version 2
 
-Diese Version ist als installierbare Web-App vorbereitet und verwendet ein eigenes App-Symbol.
+Änderungen:
+- „Protokoll geführt durch“ statt „Bearbeiter/in / Vertreter/in vor Ort“
+- „Meine Protokolle“ zum Speichern, Wiederöffnen und Weiterbearbeiten
+- Heizkostenverteiler für Wohnzimmer, Schlafzimmer, Küche, Arbeitszimmer,
+  Kinderzimmer, Badezimmer, Flur sowie 3 frei benennbare Räume
+- je Heizkostenverteiler: Zählernummer, aktueller Stand, Stand Vorjahr
+- Zählerstände zusätzlich mit Warmwasser Bad, Kaltwasser Bad und 3 freien Zeilen
+- verständlichere Datensicherungs-Schaltflächen
 
-Wichtig:
-Eine PWA kann auf Android nicht direkt aus einer lokalen file://-Datei installiert werden.
-Sie muss einmal über eine HTTPS-Webadresse geöffnet werden. Danach kann Chrome oder Samsung Internet
-„App installieren“ bzw. „Zum Startbildschirm hinzufügen“ anbieten.
-
-Bis dahin kannst du das separate App-Symbol als Bilddatei verwenden, z. B. mit Samsung Good Lock / Theme Park
-oder einem Launcher, um das Symbol der bestehenden Startbildschirm-Verknüpfung anzupassen.
+Für GitHub Pages alle Dateien in das Stammverzeichnis (root) des Repositorys hochladen
+und vorhandene Dateien mit gleichem Namen ersetzen.
