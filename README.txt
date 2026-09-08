@@ -1,4 +1,4 @@
-Wohnungsprotokoll PWA – Version 2
+Wohnungsprotokoll PWA – Version 2.1
 
 Änderungen:
 - „Protokoll geführt durch“ statt „Bearbeiter/in / Vertreter/in vor Ort“
@@ -11,3 +11,6 @@ Wohnungsprotokoll PWA – Version 2
 
 Für GitHub Pages alle Dateien in das Stammverzeichnis (root) des Repositorys hochladen
 und vorhandene Dateien mit gleichem Namen ersetzen.
+
+
+Version 2.1: Badezimmer ergänzt um Badewanne, Dusche, WC, Waschtisch, Wandfliesen, Bodenfliesen, Armaturen und Spiegel/Spiegelschrank – jeweils i.O., Mangel oder n.v.
