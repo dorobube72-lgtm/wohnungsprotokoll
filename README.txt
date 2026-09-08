@@ -1,18 +1,20 @@
-Wohnungsprotokoll PWA – Version 2.3.3.2
+Wohnungsprotokoll – Version 2.5 (Datenschutz + neue Mieteranschrift)
 
-Änderungen:
-- „Protokoll geführt durch“ statt „Bearbeiter/in / Vertreter/in vor Ort“
-- „Meine Protokolle“ zum Speichern, Wiederöffnen und Weiterbearbeiten
-- Heizkostenverteiler für Wohnzimmer, Schlafzimmer, Küche, Arbeitszimmer,
-  Kinderzimmer, Badezimmer, Flur sowie 3 frei benennbare Räume
-- je Heizkostenverteiler: Zählernummer, aktueller Stand, Stand Vorjahr
-- Zählerstände zusätzlich mit Warmwasser Bad, Kaltwasser Bad und 3 freien Zeilen
-- verständlichere Datensicherungs-Schaltflächen
+Neu in V2.5:
+- Feld für die neue Anschrift des Mieters / der Mieterin (Straße/Hausnummer sowie PLZ/Ort), insbesondere für Wohnungsabnahmen
+- alle Datenschutz- und Verschlüsselungsfunktionen aus V2.4 bleiben erhalten
 
-Für GitHub Pages alle Dateien in das Stammverzeichnis (root) des Repositorys hochladen
-und vorhandene Dateien mit gleichem Namen ersetzen.
+Bereits in V2.4:
+- lokale Verschlüsselung der Protokolldaten mit AES-GCM (256 Bit)
+- Schlüsselableitung aus dem App-Passwort via PBKDF2/SHA-256 (250.000 Iterationen)
+- verschlüsselte Speicherung in IndexedDB; das Passwort selbst wird nicht gespeichert
+- Schutz umfasst Formular-/Mieterdaten, Fotos und Unterschriften
+- App wird beim neuen Start gesperrt und muss mit dem App-Passwort entsperrt werden
+- verschlüsselte JSON-Sicherungsdateien; Import alter unverschlüsselter Backups bleibt möglich
+- vorhandene Daten aus V2.x werden beim erstmaligen Einrichten automatisch in die verschlüsselte Speicherung migriert und die alten Klartext-Schlüssel entfernt
+- Service-Worker-Cache auf v2-5 angehoben
 
+Wichtig:
+Das App-Passwort kann nicht wiederhergestellt werden. Bei Verlust sind verschlüsselte Daten ohne vorhandene, entschlüsselbare Sicherung nicht lesbar. Ein starkes Geräte-Passwort/Bildschirmsperre bleibt zusätzlich wichtig.
 
-Version 2.3.3.2: Badezimmer ergänzt um Badewanne, Dusche, WC, Waschtisch, Wandfliesen, Bodenfliesen, Armaturen und Spiegel/Spiegelschrank – jeweils i.O., Mangel oder n.v.
-
-Version 2.3: Abschließende Feststellung vor den Unterschriften (keine Mängel / Mängel dokumentiert).
+Die Anwendung sendet selbst keine Protokolldaten an GitHub. GitHub Pages liefert lediglich die statischen App-Dateien aus.

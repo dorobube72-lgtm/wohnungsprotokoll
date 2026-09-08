@@ -95,6 +95,14 @@
     .toolbar .btn{font-size:12px;padding:10px 6px;min-width:0}
   }
 
+  .lock-screen{position:fixed;inset:0;z-index:1000;background:#f4f5f7;display:flex;align-items:center;justify-content:center;padding:18px}
+  .lock-card{width:min(460px,100%);background:#fff;border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.16)}
+  .lock-card h2{font-size:21px;margin-bottom:8px}
+  .lock-card .shield{font-size:42px;margin-bottom:8px}
+  .lock-error{color:var(--danger);font-size:13px;font-weight:700;min-height:20px;margin-top:8px}
+  .security-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:6px 9px;border:1px solid #b7c9b9;background:#eef6ef;border-radius:999px;margin-top:8px}
+  @media print{.lock-screen{display:none!important}}
+
 </style>
 </head>
 <body>
@@ -127,6 +135,10 @@
     <input type="text" data-save="hausverwaltung" value="Domoconzept Immobilien- und Verwaltungs GmbH & Co. KG">
     <div class="small" style="margin-top:5px">Darstellung im Protokoll: „[Vorname] Dahlbüdding, vertreten durch Domoconzept Immobilien- und Verwaltungs GmbH &amp; Co. KG“</div>
     <label>Mieter/in</label><input type="text" data-save="mieter">
+    <div class="grid2">
+      <div><label>Neue Anschrift des Mieters / der Mieterin</label><input type="text" data-save="mieter_neue_adresse" placeholder="Straße, Hausnummer"></div>
+      <div><label>PLZ / Ort (neue Anschrift)</label><input type="text" data-save="mieter_neuer_ort" placeholder="PLZ, Ort"></div>
+    </div>
     <label>Protokoll geführt durch</label><input type="text" data-save="vermieter" placeholder="Name der Person, die die Übergabe / Abnahme durchführt">
     <label>Weitere anwesende Personen</label><input type="text" data-save="anwesend">
   </section>
@@ -204,7 +216,7 @@
     <p><strong>Zustand bei der Abnahme / Übergabe</strong></p>
     <label class="radio-line"><input type="radio" name="abschlusszustand" value="mangelfrei" data-save="abschlusszustand"> Bei der Abnahme / Übergabe wurden keine Mängel festgestellt.</label>
     <label class="radio-line"><input type="radio" name="abschlusszustand" value="maengel" data-save="abschlusszustand"> Bei der Abnahme / Übergabe wurden Mängel festgestellt; diese sind im Protokoll dokumentiert.</label>
-    <div class="notice" style="margin-top:12px">Die vorstehende Auswahl bezieht sich auf den bei der Abnahme / Übergabe festgestellten und in diesem Protokoll dokumentierten Zustand. Weitergehende gesetzliche oder vertragliche Rechte und Pflichten bleiben unberührt.</div>
+    <div class="notice" style="margin-top:12px">Die Feststellungen geben den bei der gemeinsamen Besichtigung erkennbaren und in diesem Protokoll dokumentierten Zustand wieder. Nicht erkennbare bzw. verdeckte Mängel und Schäden bleiben von dieser Zustandsfeststellung unberührt. Weitergehende gesetzliche oder vertragliche Rechte und Pflichten bleiben unberührt.</div>
   </section>
 
   <section class="card">
@@ -242,11 +254,13 @@
 
   <section class="card no-print">
     <h2>Datensicherung</h2>
-    <p class="small">Hier kannst du zusätzlich eine Sicherungsdatei exportieren oder eine frühere Sicherungsdatei wieder einlesen. Für die normale Weiterbearbeitung genügt „Speichern“ und später „Meine Protokolle“.</p>
-    <div class="grid2">
-      <button type="button" class="btn secondary" onclick="exportData()">💾 Protokoll-Datei sichern</button>
-      <label class="btn secondary" style="text-align:center">📂 Gesicherte Datei öffnen<input class="hidden" type="file" accept=".json,application/json" onchange="importData(event)"></label>
+    <p class="small">Hier kannst du zusätzlich eine <strong>verschlüsselte</strong> Sicherungsdatei exportieren oder eine frühere Sicherungsdatei wieder einlesen. Für die normale Weiterbearbeitung genügt „Speichern“ und später „Meine Protokolle“.</p>
+    <div class="notice"><strong>🔐 Datenschutz:</strong> Protokolldaten, Fotos und Unterschriften werden auf diesem Gerät verschlüsselt gespeichert. Das App-Passwort wird nicht gespeichert und kann nicht wiederhergestellt werden.</div>
+    <div class="grid2" style="margin-top:10px">
+      <button type="button" class="btn secondary" onclick="exportData()">💾 Verschlüsselte Sicherung</button>
+      <label class="btn secondary" style="text-align:center">📂 Sicherung öffnen<input class="hidden" type="file" accept=".json,application/json" onchange="importData(event)"></label>
     </div>
+    <button type="button" class="btn secondary" style="width:100%;margin-top:10px" onclick="lockApp()">🔒 App sperren</button>
   </section>
 </main>
 
@@ -263,8 +277,31 @@
       <h2 style="margin:0">Meine Protokolle</h2>
       <button type="button" class="mini-btn" onclick="hideProtocols()">Schließen</button>
     </div>
-    <div class="small" style="margin:8px 0 12px">Gespeicherte Protokolle bleiben auf diesem Gerät verfügbar und können später weiterbearbeitet werden.</div>
+    <div class="small" style="margin:8px 0 12px">Gespeicherte Protokolle bleiben verschlüsselt auf diesem Gerät verfügbar und können nach dem Entsperren später weiterbearbeitet werden.</div>
     <div id="protocolList"></div>
+  </div>
+</div>
+
+<div id="lockScreen" class="lock-screen no-print">
+  <div class="lock-card">
+    <div class="shield">🔐</div>
+    <h2 id="lockTitle">App entsperren</h2>
+    <p class="small" id="lockText">Deine Wohnungs- und Mieterdaten sind lokal verschlüsselt gespeichert.</p>
+    <div class="security-badge">AES-GCM · lokale verschlüsselte Speicherung</div>
+    <div id="setupConfirmWrap" class="hidden">
+      <label>Neues App-Passwort</label>
+      <input id="setupPassword" type="password" autocomplete="new-password" placeholder="mindestens 6 Zeichen">
+      <label>Passwort wiederholen</label>
+      <input id="setupPassword2" type="password" autocomplete="new-password">
+      <button type="button" class="btn" style="width:100%;margin-top:14px" onclick="setupEncryption()">🔐 Verschlüsselung aktivieren</button>
+    </div>
+    <div id="unlockWrap" class="hidden">
+      <label>App-Passwort</label>
+      <input id="unlockPassword" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlockApp()">
+      <button type="button" class="btn" style="width:100%;margin-top:14px" onclick="unlockApp()">Entsperren</button>
+    </div>
+    <div id="lockError" class="lock-error"></div>
+    <p class="small" style="margin-bottom:0"><strong>Wichtig:</strong> Das Passwort verlässt dein Gerät nicht und wird nicht gespeichert. Wenn du es vergisst, können verschlüsselte Protokolle nicht wiederhergestellt werden. Bewahre zusätzlich verschlüsselte Sicherungsdateien auf.</p>
   </div>
 </div>
 
@@ -276,9 +313,18 @@ const ROOMS = [
 ];
 const CHECKS = ["Wände / Decke","Boden","Fenster / Verglasung","Türen / Zargen","Heizkörper","Steckdosen / Schalter"];
 const BATHROOM_CHECKS = ["Badewanne","Dusche","WC","Waschtisch","Wandfliesen","Bodenfliesen","Armaturen","Spiegel / Spiegelschrank"];
-const storeKey = "wohnungsprotokoll_v2";
-const libraryKey = "wohnungsprotokoll_library_v2";
-let photoStore = JSON.parse(localStorage.getItem(storeKey+"_photos") || "{}");
+const storeKey = "wohnungsprotokoll_v2"; // nur für einmalige Migration alter Klartext-Daten
+const libraryKey = "wohnungsprotokoll_library_v2"; // nur für einmalige Migration
+const cryptoConfigKey = "wohnungsprotokoll_crypto_v24_config";
+const DB_NAME = "WohnungsprotokollSecureDB";
+const DB_STORE = "secure";
+const KDF_ITERATIONS = 250000;
+let cryptoKey = null;
+let sessionPassword = ""; // nur im Arbeitsspeicher bis die App geschlossen/gesperrt wird
+let appReady = false;
+let photoStore = {};
+let defectStore = {};
+let libraryCache = {};
 
 
 function initBranding(){
@@ -326,10 +372,7 @@ function buildRooms(){
   });
 }
 
-let defectStore = JSON.parse(localStorage.getItem(storeKey+"_defects") || "{}");
-function persistDefects(){
-  localStorage.setItem(storeKey+"_defects", JSON.stringify(defectStore));
-}
+function persistDefects(){ scheduleSecureSave(); }
 function addDefect(roomId, data=null){
   if(!defectStore[roomId]) defectStore[roomId]=[];
   defectStore[roomId].push(data || {
@@ -429,10 +472,7 @@ function addPhotos(roomId,e){
   });
   e.target.value="";
 }
-function persistPhotos(){
-  try{localStorage.setItem(storeKey+"_photos",JSON.stringify(photoStore))}
-  catch(err){alert("Der Gerätespeicher ist für weitere Fotos zu voll. Bitte zuerst als PDF sichern oder alte Fotos entfernen.");}
-}
+function persistPhotos(){ scheduleSecureSave(); }
 function renderPhotos(roomId){
   const box=document.getElementById("photos_"+roomId); if(!box)return;
   box.innerHTML="";
@@ -503,80 +543,164 @@ function collect(){
   };
   return obj;
 }
-function protocolLibrary(){
-  try{return JSON.parse(localStorage.getItem(libraryKey)||"{}")}catch(e){return {}}
+function bytesToB64(bytes){
+  let bin=""; const arr=bytes instanceof Uint8Array?bytes:new Uint8Array(bytes);
+  for(let i=0;i<arr.length;i++) bin+=String.fromCharCode(arr[i]);
+  return btoa(bin);
 }
-function protocolId(data){
-  return data.protokollnr || `WP-${Date.now()}`;
+function b64ToBytes(str){
+  const bin=atob(str), out=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+  return out;
 }
-function saveAll(){
-  const data=collect();
-  localStorage.setItem(storeKey,JSON.stringify(data));
-  persistPhotos(); persistDefects();
-  const lib=protocolLibrary();
-  const id=protocolId(data);
-  lib[id]={data, savedAt:new Date().toISOString()};
-  localStorage.setItem(libraryKey,JSON.stringify(lib));
-  alert("Protokoll gespeichert. Du findest es später unter „Meine Protokolle“.");
+function openSecureDb(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(DB_STORE)) req.result.createObjectStore(DB_STORE); };
+    req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+  });
+}
+async function dbGet(key){
+  const db=await openSecureDb();
+  return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readonly"),r=tx.objectStore(DB_STORE).get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+}
+async function dbPut(key,value){
+  const db=await openSecureDb();
+  return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readwrite");tx.objectStore(DB_STORE).put(value,key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});
+}
+async function dbDelete(key){
+  const db=await openSecureDb();
+  return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readwrite");tx.objectStore(DB_STORE).delete(key);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});
+}
+async function deriveKey(password,salt){
+  const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:KDF_ITERATIONS,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptObject(obj,key=cryptoKey){
+  if(!key) throw new Error("App ist gesperrt");
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const plain=new TextEncoder().encode(JSON.stringify(obj));
+  const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,plain);
+  return {v:1,alg:"AES-GCM",iv:bytesToB64(iv),data:bytesToB64(cipher)};
+}
+async function decryptObject(payload,key=cryptoKey){
+  if(!payload) return null;
+  if(!key) throw new Error("App ist gesperrt");
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64ToBytes(payload.iv)},key,b64ToBytes(payload.data));
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+async function secureWrite(name,obj){ await dbPut(name,await encryptObject(obj)); }
+async function secureRead(name,fallback){
+  const payload=await dbGet(name); if(!payload)return fallback;
+  return await decryptObject(payload);
+}
+function getCryptoConfig(){try{return JSON.parse(localStorage.getItem(cryptoConfigKey)||"null")}catch(e){return null}}
+function lockMessage(msg=""){document.getElementById("lockError").textContent=msg}
+function showSecurityGate(){
+  const cfg=getCryptoConfig();
+  document.getElementById("lockScreen").style.display="flex";
+  document.getElementById("setupConfirmWrap").classList.toggle("hidden",!!cfg);
+  document.getElementById("unlockWrap").classList.toggle("hidden",!cfg);
+  document.getElementById("lockTitle").textContent=cfg?"App entsperren":"Datenschutz einrichten";
+  document.getElementById("lockText").textContent=cfg?"Deine Wohnungs- und Mieterdaten sind lokal verschlüsselt gespeichert.":"Lege einmalig ein App-Passwort fest. Danach werden Protokolle, Fotos und Unterschriften verschlüsselt auf diesem Gerät gespeichert.";
+  setTimeout(()=>document.getElementById(cfg?"unlockPassword":"setupPassword")?.focus(),100);
+}
+async function setupEncryption(){
+  const p1=document.getElementById("setupPassword").value, p2=document.getElementById("setupPassword2").value;
+  if(p1.length<6){lockMessage("Bitte mindestens 6 Zeichen verwenden. Besser ist ein längeres Passwort.");return}
+  if(p1!==p2){lockMessage("Die beiden Passwörter stimmen nicht überein.");return}
+  try{
+    lockMessage("Verschlüsselung wird eingerichtet …");
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;
+    const verifier=await encryptObject({check:"wohnungsprotokoll-v24"});
+    localStorage.setItem(cryptoConfigKey,JSON.stringify({v:1,salt:bytesToB64(salt),iterations:KDF_ITERATIONS,verifier}));
+    await migrateLegacyPlaintext();
+    await finishUnlock();
+  }catch(e){console.error(e);cryptoKey=null;sessionPassword="";lockMessage("Die Verschlüsselung konnte nicht eingerichtet werden.");}
+}
+async function unlockApp(){
+  const cfg=getCryptoConfig(), password=document.getElementById("unlockPassword").value;
+  if(!cfg||!password)return;
+  try{
+    lockMessage("Entsperren …");
+    const key=await deriveKey(password,b64ToBytes(cfg.salt));
+    const test=await decryptObject(cfg.verifier,key);
+    if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("wrong password");
+    cryptoKey=key;sessionPassword=password;
+    await finishUnlock();
+  }catch(e){cryptoKey=null;sessionPassword="";lockMessage("Passwort nicht korrekt.");}
+}
+async function migrateLegacyPlaintext(){
+  let draft=null, legacyPhotos=null, legacyDefects=null, legacyLibrary={};
+  try{draft=JSON.parse(localStorage.getItem(storeKey)||"null")}catch(e){}
+  try{legacyPhotos=JSON.parse(localStorage.getItem(storeKey+"_photos")||"null")}catch(e){}
+  try{legacyDefects=JSON.parse(localStorage.getItem(storeKey+"_defects")||"null")}catch(e){}
+  try{legacyLibrary=JSON.parse(localStorage.getItem(libraryKey)||"{}")}catch(e){}
+  if(draft){draft.photos=draft.photos||legacyPhotos||{};draft.defects=draft.defects||legacyDefects||{};await secureWrite("draft",draft)}
+  if(legacyLibrary&&Object.keys(legacyLibrary).length){libraryCache=legacyLibrary;await secureWrite("library",libraryCache)}
+  localStorage.removeItem(storeKey);localStorage.removeItem(storeKey+"_photos");localStorage.removeItem(storeKey+"_defects");localStorage.removeItem(libraryKey);
+}
+async function finishUnlock(){
+  try{
+    libraryCache=await secureRead("library",{});
+    const draft=await secureRead("draft",null);
+    if(draft){applyData(draft)}else{photoStore={};defectStore={};renderAllRoomsData();}
+    appReady=true;lockMessage("");document.getElementById("lockScreen").style.display="none";
+  }catch(e){console.error(e);cryptoKey=null;sessionPassword="";lockMessage("Die gespeicherten Daten konnten nicht entschlüsselt werden.");}
+}
+function renderAllRoomsData(){
+  ROOMS.forEach(room=>{const id=slug(room);renderPhotos(id);renderDefects(id)});updatePhotoSummary();
+}
+function applyData(obj){
+  photoStore=obj.photos||{};defectStore=obj.defects||{};
+  document.querySelectorAll("[data-save]").forEach(el=>{
+    const k=el.dataset.save;
+    if(el.type==="checkbox")el.checked=!!obj[k];
+    else if(el.type==="radio")el.checked=(el.value===obj[k]);
+    else if(k in obj)el.value=obj[k]??"";
+  });
+  document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=(r.value===obj.art));
+  clearSig("sigTenant");clearSig("sigLandlord");
+  if(obj.signatures){loadSig("sigTenant",obj.signatures.tenant);loadSig("sigLandlord",obj.signatures.landlord)}
+  renderAllRoomsData();initBranding();
+}
+function protocolLibrary(){return libraryCache||{}}
+function protocolId(data){return data.protokollnr||`WP-${Date.now()}`}
+async function saveDraftEncrypted(){
+  if(!appReady||!cryptoKey)return;
+  try{await secureWrite("draft",collect())}catch(e){console.error(e);alert("Das Protokoll konnte nicht verschlüsselt gespeichert werden. Prüfe den freien Gerätespeicher.");}
+}
+function scheduleSecureSave(){
+  if(!appReady)return;
+  clearTimeout(window._autosave);window._autosave=setTimeout(()=>saveDraftEncrypted(),700);
+}
+async function saveAll(){
+  const data=collect(), id=protocolId(data);
+  try{
+    await secureWrite("draft",data);
+    libraryCache[id]={data,savedAt:new Date().toISOString()};
+    await secureWrite("library",libraryCache);
+    alert("Protokoll verschlüsselt gespeichert. Du findest es später unter „Meine Protokolle“.");
+  }catch(e){console.error(e);alert("Speichern fehlgeschlagen. Prüfe den freien Gerätespeicher.");}
 }
 function showProtocols(){
-  const modal=document.getElementById("protocolModal"), list=document.getElementById("protocolList");
-  const lib=protocolLibrary();
+  const modal=document.getElementById("protocolModal"),list=document.getElementById("protocolList"),lib=protocolLibrary();
   const items=Object.entries(lib).sort((a,b)=>(b[1].savedAt||"").localeCompare(a[1].savedAt||""));
-  if(!items.length){
-    list.innerHTML='<div class="notice">Noch keine Protokolle gespeichert.</div>';
-  }else{
-    list.innerHTML=items.map(([id,entry])=>{
-      const d=entry.data||{};
-      const title=esc(d.objekt||"Ohne Objektangabe");
-      const meta=[d.art||"",d.datum||"",d.mieter||""].filter(Boolean).map(esc).join(" · ");
-      return `<div class="protocol-item">
-        <div class="protocol-item-title">${title}</div>
-        <div class="protocol-item-meta">${meta||esc(id)}</div>
-        <div class="protocol-actions">
-          <button type="button" class="btn secondary" onclick="openProtocol('${encodeURIComponent(id)}')">Öffnen</button>
-          <button type="button" class="btn danger" onclick="deleteProtocol('${encodeURIComponent(id)}')">Löschen</button>
-        </div>
-      </div>`;
-    }).join("");
-  }
+  if(!items.length)list.innerHTML='<div class="notice">Noch keine Protokolle gespeichert.</div>';
+  else list.innerHTML=items.map(([id,entry])=>{const d=entry.data||{},title=esc(d.objekt||"Ohne Objektangabe"),meta=[d.art||"",d.datum||"",d.mieter||""].filter(Boolean).map(esc).join(" · ");return `<div class="protocol-item"><div class="protocol-item-title">${title}</div><div class="protocol-item-meta">${meta||esc(id)}</div><div class="protocol-actions"><button type="button" class="btn secondary" onclick="openProtocol('${encodeURIComponent(id)}')">Öffnen</button><button type="button" class="btn danger" onclick="deleteProtocol('${encodeURIComponent(id)}')">Löschen</button></div></div>`}).join("");
   modal.classList.remove("hidden");
 }
-function hideProtocols(){ document.getElementById("protocolModal").classList.add("hidden"); }
-function openProtocol(encodedId){
-  const id=decodeURIComponent(encodedId), lib=protocolLibrary(), entry=lib[id];
-  if(!entry)return;
-  const d=entry.data||{};
-  localStorage.setItem(storeKey,JSON.stringify(d));
-  localStorage.setItem(storeKey+"_photos",JSON.stringify(d.photos||{}));
-  localStorage.setItem(storeKey+"_defects",JSON.stringify(d.defects||{}));
-  location.reload();
+function hideProtocols(){document.getElementById("protocolModal").classList.add("hidden")}
+async function openProtocol(encodedId){
+  const id=decodeURIComponent(encodedId),entry=libraryCache[id];if(!entry)return;
+  applyData(entry.data||{});await secureWrite("draft",collect());hideProtocols();window.scrollTo({top:0,behavior:"smooth"});
 }
-function deleteProtocol(encodedId){
-  const id=decodeURIComponent(encodedId);
-  if(!confirm("Dieses gespeicherte Protokoll wirklich löschen?"))return;
-  const lib=protocolLibrary(); delete lib[id]; localStorage.setItem(libraryKey,JSON.stringify(lib)); showProtocols();
+async function deleteProtocol(encodedId){
+  const id=decodeURIComponent(encodedId);if(!confirm("Dieses gespeicherte Protokoll wirklich löschen?"))return;
+  delete libraryCache[id];await secureWrite("library",libraryCache);showProtocols();
 }
-function restore(){
-  const raw=localStorage.getItem(storeKey); if(!raw)return;
-  try{
-    const obj=JSON.parse(raw);
-    document.querySelectorAll("[data-save]").forEach(el=>{
-      const k=el.dataset.save;
-      if(!(k in obj))return;
-      if(el.type==="checkbox")el.checked=!!obj[k];
-      else if(el.type==="radio")el.checked=(el.value===obj[k]);
-      else el.value=obj[k];
-    });
-    if(obj.art){
-      const r=[...document.querySelectorAll('input[name="art"]')].find(x=>x.value===obj.art); if(r)r.checked=true;
-    }
-    if(obj.signatures){
-      loadSig("sigTenant",obj.signatures.tenant);
-      loadSig("sigLandlord",obj.signatures.landlord);
-    }
-  }catch(e){}
-}
+function restore(){/* V2.4: Wiederherstellung erfolgt erst nach Entsperren. */}
 function setupSig(id){
   const c=document.getElementById(id), ctx=c.getContext("2d");
   function resize(){
@@ -603,35 +727,58 @@ function printProtocol(){
   document.title=`${obj}_${art}_${datum}`;
   window.print();
 }
-function saveSilent(){ localStorage.setItem(storeKey,JSON.stringify(collect())); persistPhotos(); }
-function newProtocol(){
+async function saveSilent(){await saveDraftEncrypted()}
+function resetForNewProtocol(){
+  photoStore={};defectStore={};
+  document.querySelectorAll("[data-save]").forEach(el=>{
+    const k=el.dataset.save;
+    if(el.type==="checkbox"||el.type==="radio")el.checked=false;
+    else if(k==="eigentuemer_nachname")el.value="Dahlbüdding";
+    else if(k==="hausverwaltung")el.value="Domoconzept Immobilien- und Verwaltungs GmbH & Co. KG";
+    else el.value="";
+  });
+  document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=false);
+  clearSig("sigTenant");clearSig("sigLandlord");renderAllRoomsData();initBranding();
+}
+async function newProtocol(){
   if(!confirm("Wirklich ein neues Protokoll beginnen? Das aktuelle Formular wird geleert. Gespeicherte Protokolle unter „Meine Protokolle“ bleiben erhalten."))return;
-  localStorage.removeItem(storeKey); localStorage.removeItem(storeKey+"_photos"); localStorage.removeItem(storeKey+"_defects"); location.reload();
+  await dbDelete("draft");resetForNewProtocol();window.scrollTo({top:0,behavior:"smooth"});
 }
-function exportData(){
-  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  const obj=(document.querySelector('[data-save="objekt"]').value||"Wohnung").replace(/[^\wäöüÄÖÜß-]+/g,"_");
-  a.download=`Protokoll_${obj}_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
+async function exportData(){
+  if(!cryptoKey||!sessionPassword){alert("Bitte die App zuerst entsperren.");return}
+  try{
+    const salt=crypto.getRandomValues(new Uint8Array(16)),key=await deriveKey(sessionPassword,salt),payload=await encryptObject(collect(),key);
+    const pack={format:"Wohnungsprotokoll-Encrypted-Backup",version:1,kdf:"PBKDF2-SHA-256",iterations:KDF_ITERATIONS,salt:bytesToB64(salt),payload};
+    const blob=new Blob([JSON.stringify(pack)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    const obj=(document.querySelector('[data-save="objekt"]').value||"Wohnung").replace(/[^\wäöüÄÖÜß-]+/g,"_");
+    a.download=`Protokoll_${obj}_${new Date().toISOString().slice(0,10)}_verschluesselt.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }catch(e){console.error(e);alert("Die verschlüsselte Sicherung konnte nicht erstellt werden.");}
 }
-function importData(e){
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader(); r.onload=()=>{
-    try{
-      const obj=JSON.parse(r.result); localStorage.setItem(storeKey,JSON.stringify(obj));
-      if(obj.photos){photoStore=obj.photos;persistPhotos()}
-      if(obj.defects){defectStore=obj.defects;persistDefects()}
-      location.reload();
-    }catch(err){alert("Die Datei konnte nicht geladen werden.");}
-  }; r.readAsText(f);
+async function importData(e){
+  const f=e.target.files[0];if(!f)return;
+  try{
+    const text=await f.text(),obj=JSON.parse(text);let data;
+    if(obj?.format==="Wohnungsprotokoll-Encrypted-Backup"){
+      let password=sessionPassword;
+      try{const key=await deriveKey(password,b64ToBytes(obj.salt));data=await decryptObject(obj.payload,key)}catch(err){password=prompt("Passwort der Sicherungsdatei eingeben:")||"";const key=await deriveKey(password,b64ToBytes(obj.salt));data=await decryptObject(obj.payload,key)}
+    }else{
+      if(!confirm("Das ist eine ältere, unverschlüsselte Sicherungsdatei. Nach dem Import wird sie auf diesem Gerät verschlüsselt gespeichert. Fortfahren?")){e.target.value="";return}
+      data=obj;
+    }
+    applyData(data||{});await secureWrite("draft",collect());alert("Sicherung geladen und verschlüsselt auf diesem Gerät gespeichert.");
+  }catch(err){console.error(err);alert("Die Datei konnte nicht entschlüsselt oder geladen werden. Prüfe das Passwort und die Datei.");}
+  e.target.value="";
+}
+function lockApp(){
+  cryptoKey=null;sessionPassword="";appReady=false;location.reload();
 }
 buildRooms();
 ["Strom","Gas","Wasser kalt","Wasser warm","Warmwasser Bad","Kaltwasser Bad","","",""].forEach(x=>addMeter({art:x}));
 buildHeatMeters();
 ["Wohnung","Haustür","Briefkasten","Keller"].forEach(x=>addKey({art:x}));
 setupSig("sigTenant"); setupSig("sigLandlord");
-restore(); initBranding(); updatePhotoSummary();
-document.addEventListener("input",()=>{clearTimeout(window._autosave);window._autosave=setTimeout(saveSilent,700)});
+initBranding(); updatePhotoSummary(); showSecurityGate();
+document.addEventListener("input",e=>{if(appReady && !e.target.closest("#lockScreen"))scheduleSecureSave()});
 </script>
 <script>
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {

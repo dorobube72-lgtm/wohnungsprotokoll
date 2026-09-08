@@ -1,4 +1,4 @@
-const CACHE='wohnungsprotokoll-v2-3';
+const CACHE='wohnungsprotokoll-v2-5';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));
@@ -9,8 +9,6 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET') return;
   event.respondWith(fetch(event.request).then(resp=>{
-    const copy=resp.clone();
-    caches.open(CACHE).then(cache=>cache.put(event.request,copy));
-    return resp;
+    const copy=resp.clone(); caches.open(CACHE).then(cache=>cache.put(event.request,copy)); return resp;
   }).catch(()=>caches.match(event.request).then(r=>r||caches.match('./index.html'))));
 });
