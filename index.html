@@ -115,6 +115,13 @@
 #printPreviewBar .btn{width:auto;min-width:0}
 #printPreviewFrameWrap{padding:16px}
 #printPreviewFrame{display:block;width:min(210mm,100%);min-height:297mm;margin:0 auto;background:#fff;border:0;box-shadow:0 4px 24px #0004}
+
+.room-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.room.room-absent{opacity:.55}
+@media print{.room.room-absent{display:none!important}}
+
+.custom-room-name{display:block;margin:-2px 0 10px;font-size:.92rem;color:#5f6b7a}
+.custom-room-name input{margin-top:5px;max-width:320px}
 </style>
 </head>
 <body>
@@ -327,7 +334,7 @@
 const ROOMS = [
   "Wohnzimmer","Schlafzimmer / Zimmer 1","Küche / Küchenbereich",
   "Kinderzimmer","Arbeitszimmer","Flur / Diele","Badezimmer / WC",
-  "Balkon / Terrasse","Abstellraum / Keller","Weiteres Zimmer"
+  "Balkon / Terrasse","Abstellraum","Keller","Weiteres Zimmer 1","Weiteres Zimmer 2"
 ];
 const CHECKS = ["Wände / Decke","Boden","Fenster / Verglasung","Türen / Zargen","Heizkörper","Steckdosen / Schalter"];
 const BATHROOM_CHECKS = ["Badewanne","Dusche","WC","Waschtisch","Wandfliesen","Bodenfliesen","Armaturen","Spiegel / Spiegelschrank"];
@@ -368,7 +375,15 @@ function buildRooms(){
     const id=slug(room);
     const div=document.createElement("div");
     div.className="room";
-    div.innerHTML=`<h3>${room}</h3>
+    div.id=`room_${id}`;
+    const isCustomRoom = room==="Weiteres Zimmer 1" || room==="Weiteres Zimmer 2";
+    div.innerHTML=`<div class="room-head"><div>
+      <h3 id="${id}_title">${room}</h3>
+      ${isCustomRoom ? `<label class="custom-room-name no-print">Raumbezeichnung
+        <input type="text" data-save="${id}_custom_name" placeholder="${room}" oninput="updateCustomRoomTitle('${id}', this.value)">
+      </label>` : ``}
+      </div>
+      <label class="chip no-print"><input type="checkbox" data-save="${id}_room_absent" onchange="setRoomAbsent('${id}',this.checked)"> Raum nicht vorhanden</label></div>
       ${[...CHECKS, ...(room === "Badezimmer / WC" ? BATHROOM_CHECKS : [])].map((c,ci)=>`<div class="status-row">
         <div class="name">${c}</div>
         <label><input type="radio" name="${id}_${ci}" value="i.O." data-save="${id}_${ci}"> i.O.</label>
@@ -387,6 +402,51 @@ function buildRooms(){
       <div class="photos" id="photos_${id}"></div>`;
     root.appendChild(div);
     renderPhotos(id); renderDefects(id);
+  });
+}
+
+
+function updateCustomRoomTitle(roomId, value){
+  const title=document.getElementById(roomId+"_title");
+  if(!title)return;
+  const fallback=roomId.includes("weiteres_zimmer_2")?"Weiteres Zimmer 2":"Weiteres Zimmer 1";
+  title.textContent=(value||"").trim()||fallback;
+  if(appReady) scheduleSecureSave();
+}
+function refreshCustomRoomTitles(){
+  ["Weiteres Zimmer 1","Weiteres Zimmer 2"].forEach(room=>{
+    const id=slug(room);
+    const inp=document.querySelector(`[data-save="${id}_custom_name"]`);
+    updateCustomRoomTitle(id, inp?.value||"");
+  });
+}
+function setRoomAbsent(roomId, absent){
+  const room=document.getElementById("room_"+roomId); if(!room)return;
+  room.classList.toggle("room-absent",!!absent);
+  room.querySelectorAll('.status-row input[type="radio"]').forEach(r=>{
+    if(absent && r.value==="n.v.") r.checked=true;
+    r.disabled=!!absent;
+  });
+  room.querySelectorAll('textarea').forEach(t=>t.disabled=!!absent);
+  if(appReady) scheduleSecureSave();
+}
+function refreshRoomAbsentStates(){
+  ROOMS.forEach(room=>{
+    const id=slug(room), cb=document.querySelector(`[data-save="${id}_room_absent"]`);
+    if(cb) setRoomAbsent(id,cb.checked);
+  });
+}
+function inferLegacyAbsentRooms(){
+  ROOMS.forEach(room=>{
+    const id=slug(room), cb=document.querySelector(`[data-save="${id}_room_absent"]`);
+    if(!cb || cb.checked) return;
+    const radios=[...document.querySelectorAll(`#room_${id} .status-row input[type="radio"]:checked`)];
+    const total=document.querySelectorAll(`#room_${id} .status-row`).length;
+    const allNv=total>0 && radios.length===total && radios.every(r=>r.value==="n.v.");
+    const details=(document.querySelector(`[data-save="${id}_details"]`)?.value||"").trim();
+    const defects=(defectStore[id]||[]).length;
+    const photos=(photoStore[id]||[]).length;
+    if(allNv && !details && !defects && !photos){cb.checked=true;setRoomAbsent(id,true)}
   });
 }
 
@@ -712,7 +772,7 @@ function applyData(obj){
   document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=(r.value===obj.art));
   clearSig("sigTenant");clearSig("sigLandlord");
   if(obj.signatures){loadSig("sigTenant",obj.signatures.tenant);loadSig("sigLandlord",obj.signatures.landlord)}
-  renderAllRoomsData();initBranding();
+  renderAllRoomsData();refreshRoomAbsentStates();refreshCustomRoomTitles();initBranding();
 }
 function protocolLibrary(){return libraryCache||{}}
 function protocolId(data){return data.protokollnr||`WP-${Date.now()}`}
@@ -788,6 +848,7 @@ function setupSig(id){
 function clearSig(id){ const c=document.getElementById(id); c.getContext("2d").clearRect(0,0,c.width,c.height); }
 function loadSig(id,data){ if(!data)return; const c=document.getElementById(id),ctx=c.getContext("2d"),im=new Image(); im.onload=()=>ctx.drawImage(im,0,0,c.width/devicePixelRatio,180); im.src=data; }
 function printProtocol(){
+  refreshRoomAbsentStates();
   saveSilent();
   const obj=(document.querySelector('[data-save="objekt"]').value||"Wohnung").replace(/[^\wäöüÄÖÜß-]+/g,"_");
   const art=(document.querySelector('input[name="art"]:checked')?.value||"Protokoll").includes("Auszug")?"Abnahme":"Uebergabe";
@@ -806,7 +867,7 @@ function resetForNewProtocol(){
     else el.value="";
   });
   document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=false);
-  clearSig("sigTenant");clearSig("sigLandlord");signatureTimestamp="";document.getElementById("signatureStampWrap").style.display="none";renderAllRoomsData();initBranding();
+  clearSig("sigTenant");clearSig("sigLandlord");signatureTimestamp="";document.getElementById("signatureStampWrap").style.display="none";renderAllRoomsData();refreshRoomAbsentStates();refreshCustomRoomTitles();initBranding();
 }
 async function newProtocol(){
   if(!confirm("Wirklich ein neues Protokoll beginnen? Das aktuelle Formular wird geleert. Gespeicherte Protokolle unter „Meine Protokolle“ bleiben erhalten."))return;
@@ -875,13 +936,21 @@ function syncCloneState(srcDoc, cloneDoc){
   });
 }
 function buildPrintPreview(){
+  refreshRoomAbsentStates();
+  refreshCustomRoomTitles();
   const clone=document.documentElement.cloneNode(true);
   const temp=document.implementation.createHTMLDocument('');
   temp.replaceChild(temp.importNode(clone,true),temp.documentElement);
   syncCloneState(document,temp);
+  temp.querySelectorAll('.status-row').forEach(row=>{
+    const checked=row.querySelector('input[type="radio"]:checked');
+    const name=row.querySelector('.name')?.textContent?.trim()||'';
+    const val=checked?.value||'—';
+    row.innerHTML='<div class="name">'+name+'</div><div class="preview-status"><strong>'+val+'</strong></div>';
+  });
 
   // Remove app-only UI and preview container itself.
-  temp.querySelectorAll('header,.toolbar,.no-print,.sig-actions,.modal,.lock,#printPreview').forEach(el=>el.remove());
+  temp.querySelectorAll('header,.toolbar,.no-print,.sig-actions,.modal,.lock,#printPreview,.room.room-absent').forEach(el=>el.remove());
 
   // Mirror the actual @media print appearance on screen.
   const style=temp.createElement('style');
@@ -889,7 +958,7 @@ function buildPrintPreview(){
     html,body{background:#fff!important;margin:0!important;padding:0!important}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important}
     main{padding:0!important;max-width:none!important;margin:0!important}
-    .card{border-radius:0!important;margin:0 0 10px!important;break-inside:avoid!important;box-shadow:none!important}
+    .card{border-radius:0!important;margin:0 0 10px!important;break-inside:avoid!important;box-shadow:none!important}.status-row{grid-template-columns:1fr auto!important}.preview-status{padding:4px 0!important;text-align:right!important}
     input,textarea,select{border:0!important;padding:2px!important;background:transparent!important;color:#111!important;appearance:none!important;-webkit-appearance:none!important;pointer-events:none!important}
     button{display:none!important}
     *{box-sizing:border-box}

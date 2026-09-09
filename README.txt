@@ -31,3 +31,7 @@ Version 2.9: 12-Stunden-Freigabe bleibt über vollständiges Schließen der PWA 
 V3.0: Korrigierte 12-Stunden-Freigabe über App-Neustarts. Das Passwort wird dafür NICHT gespeichert; stattdessen wird der nicht exportierbare WebCrypto-Schlüssel mit Ablaufzeit lokal in IndexedDB gehalten. Manueller Sperren-Button löscht ihn. Sichtbarer Vorschau-Button in der unteren Leiste.
 
 V3.1: Vorschau vollständig überarbeitet. Sie zeigt nun eine schreibgeschützte Bildschirmansicht im gleichen Drucklayout wie die spätere PDF-/Druckausgabe, statt einer separaten Zusammenfassung.
+
+V3.2: Jeder Raum hat einen Schalter „Raum nicht vorhanden“. Solche Räume werden in Vorschau und PDF vollständig ausgeblendet. Alte Protokolle werden automatisch erkannt, wenn alle Prüfpunkte eines Raums auf „n.v.“ stehen und keine weiteren Inhalte vorhanden sind. In der Vorschau wird der gewählte Zustand (i.O., Mangel oder n.v.) als Text sichtbar angezeigt.
+
+V3.3: Abstellraum und Keller sind getrennte Räume. Zusätzlich gibt es „Weiteres Zimmer 1“ und „Weiteres Zimmer 2“. Beide zusätzlichen Räume können über das Feld „Raumbezeichnung“ individuell benannt werden; der eigene Name erscheint in Vorschau und PDF.
