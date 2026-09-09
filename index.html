@@ -279,7 +279,7 @@
   <button class="btn secondary" onclick="saveAll()">💾 Speichern</button>
   <button class="btn secondary" onclick="showProtocols()">📂 Meine Protokolle</button>
   <button class="btn" onclick="printProtocol()">PDF</button>
-  <button class="btn danger" onclick="newProtocol()">Neu</button>
+  <button class="btn danger" onclick="newProtocol()">Neu</button><button class="btn secondary" onclick="lockNow()">🔒 Sperren</button>
 </div>
 
 <div id="protocolModal" class="modal hidden no-print" onclick="if(event.target===this)hideProtocols()">
@@ -607,6 +607,38 @@ async function secureRead(name,fallback){
 }
 function getCryptoConfig(){try{return JSON.parse(localStorage.getItem(cryptoConfigKey)||"null")}catch(e){return null}}
 function lockMessage(msg=""){document.getElementById("lockError").textContent=msg}
+
+function rememberSession(password){
+  try{sessionStorage.setItem(SESSION_KEY,JSON.stringify({password,expires:Date.now()+SESSION_MS}))}catch(e){}
+}
+function clearSession(){try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}}
+async function trySessionUnlock(){
+  const cfg=getCryptoConfig(); if(!cfg)return false;
+  try{
+    const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
+    if(!s||!s.password||Date.now()>s.expires){clearSession();return false}
+    const k=await deriveKey(s.password,b64ToBytes(cfg.salt));
+    const test=await decryptObject(cfg.verifier,k);
+    if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("session invalid");
+    cryptoKey=k;sessionPassword=s.password;rememberSession(s.password);
+    await finishUnlock(); return true;
+  }catch(e){clearSession();cryptoKey=null;sessionPassword="";return false}
+}
+function lockNow(){
+  clearSession();cryptoKey=null;sessionPassword="";appReady=false;
+  document.getElementById("unlockPassword").value="";
+  showSecurityGate();
+}
+function formatStamp(iso){
+  if(!iso)return "";
+  const d=new Date(iso);
+  return d.toLocaleDateString("de-DE")+" um "+d.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})+" Uhr";
+}
+function markSigned(){
+  if(!signatureTimestamp) signatureTimestamp=new Date().toISOString();
+  const w=document.getElementById("signatureStampWrap"),s=document.getElementById("signatureStamp");
+  if(w&&s){s.textContent=formatStamp(signatureTimestamp);w.style.display="block"}
+}
 function showSecurityGate(){
   const cfg=getCryptoConfig();
   document.getElementById("lockScreen").style.display="flex";
@@ -623,7 +655,7 @@ async function setupEncryption(){
   try{
     lockMessage("Verschlüsselung wird eingerichtet …");
     const salt=crypto.getRandomValues(new Uint8Array(16));
-    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;
+    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;rememberSession(p1);
     const verifier=await encryptObject({check:"wohnungsprotokoll-v24"});
     localStorage.setItem(cryptoConfigKey,JSON.stringify({v:1,salt:bytesToB64(salt),iterations:KDF_ITERATIONS,verifier}));
     await migrateLegacyPlaintext();
@@ -638,7 +670,7 @@ async function unlockApp(){
     const key=await deriveKey(password,b64ToBytes(cfg.salt));
     const test=await decryptObject(cfg.verifier,key);
     if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("wrong password");
-    cryptoKey=key;sessionPassword=password;
+    cryptoKey=key;sessionPassword=password;rememberSession(password);
     await finishUnlock();
   }catch(e){cryptoKey=null;sessionPassword="";lockMessage("Passwort nicht korrekt.");}
 }
@@ -719,7 +751,7 @@ async function copyProtocol(encodedId){
   copy.mietzeit="";
   copy.datum=new Date().toISOString().slice(0,10);
   copy.art="Übergabe / Einzug";
-  copy.signatures={tenant:"",landlord:""};
+  copy.signatures={tenant:"",landlord:""};copy.signatureTimestamp="";
   applyData(copy);
   initBranding(); // erzeugt eine neue eindeutige Protokollnummer
   await secureWrite("draft",collect());
@@ -768,7 +800,7 @@ function resetForNewProtocol(){
     else el.value="";
   });
   document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=false);
-  clearSig("sigTenant");clearSig("sigLandlord");renderAllRoomsData();initBranding();
+  clearSig("sigTenant");clearSig("sigLandlord");signatureTimestamp="";document.getElementById("signatureStampWrap").style.display="none";renderAllRoomsData();initBranding();
 }
 async function newProtocol(){
   if(!confirm("Wirklich ein neues Protokoll beginnen? Das aktuelle Formular wird geleert. Gespeicherte Protokolle unter „Meine Protokolle“ bleiben erhalten."))return;
