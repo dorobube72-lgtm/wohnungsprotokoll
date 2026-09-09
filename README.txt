@@ -29,3 +29,5 @@ Version 2.8: 12-Stunden-Arbeitssitzung (Passwort nur einmal pro Sitzung), manuel
 Version 2.9: 12-Stunden-Freigabe bleibt über vollständiges Schließen der PWA erhalten; manueller Sperren-Button löscht sie sofort. Neue schreibgeschützte Protokoll-Vorschau vor der Unterschrift. Hinweis: Die persistente 12h-Freigabe ist komfortabler, reduziert während dieses Zeitfensters aber den zusätzlichen Schutz gegenüber einer erneuten Passworteingabe.
 
 V3.0: Korrigierte 12-Stunden-Freigabe über App-Neustarts. Das Passwort wird dafür NICHT gespeichert; stattdessen wird der nicht exportierbare WebCrypto-Schlüssel mit Ablaufzeit lokal in IndexedDB gehalten. Manueller Sperren-Button löscht ihn. Sichtbarer Vorschau-Button in der unteren Leiste.
+
+V3.1: Vorschau vollständig überarbeitet. Sie zeigt nun eine schreibgeschützte Bildschirmansicht im gleichen Drucklayout wie die spätere PDF-/Druckausgabe, statt einer separaten Zusammenfassung.

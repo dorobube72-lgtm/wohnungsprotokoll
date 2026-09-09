@@ -108,7 +108,14 @@
   .security-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:6px 9px;border:1px solid #b7c9b9;background:#eef6ef;border-radius:999px;margin-top:8px}
   @media print{.lock-screen{display:none!important}}
 
-.preview-overlay{position:fixed;inset:0;background:#eef3f8;z-index:9998;overflow:auto;display:none}.preview-sheet{max-width:900px;margin:18px auto;background:#fff;padding:22px;border-radius:18px;box-shadow:0 8px 30px #0002}.preview-top{position:sticky;top:0;z-index:2;display:flex;gap:10px;justify-content:space-between;align-items:center;background:#eef3f8;padding:10px 0}.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 18px}.preview-item{padding:5px 0;border-bottom:1px solid #edf0f3}.preview-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.preview-photos img{width:100%;max-height:320px;object-fit:contain;border:1px solid #ddd;border-radius:10px}@media(max-width:650px){.preview-sheet{margin:0;border-radius:0;padding:14px}.preview-grid,.preview-photos{grid-template-columns:1fr}}</style>
+
+/* Bildschirm-Vorschau im Stil der späteren PDF-/Druckausgabe */
+#printPreview{position:fixed;inset:0;z-index:9999;background:#d9dde3;overflow:auto;display:none}
+#printPreviewBar{position:sticky;top:0;z-index:10000;background:#172033;color:#fff;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;box-shadow:0 2px 8px #0003}
+#printPreviewBar .btn{width:auto;min-width:0}
+#printPreviewFrameWrap{padding:16px}
+#printPreviewFrame{display:block;width:min(210mm,100%);min-height:297mm;margin:0 auto;background:#fff;border:0;box-shadow:0 4px 24px #0004}
+</style>
 </head>
 <body>
 <header>
@@ -847,29 +854,84 @@ function labelP(el){
   const l=el.closest("label"); if(l)return (l.innerText||"").replace((el.value||""),"").trim();
   return el.name||el.id||"Angabe";
 }
-function showPreview(){
-  const c=document.getElementById("previewContent"); let a=[];
-  a.push('<h1>Wohnungsprotokoll</h1><div class="small"><strong>Abnahme/Übergabe</strong></div>');
-  a.push('<h2>Protokolldaten</h2><div class="preview-grid">');
-  document.querySelectorAll('main input,main select,main textarea').forEach(el=>{
-    if(el.type==="file"||el.type==="button"||el.type==="submit"||el.closest(".no-print"))return;
-    if((el.type==="radio"||el.type==="checkbox")&&!el.checked)return;
-    let v=(el.type==="radio"||el.type==="checkbox")?(el.value||"Ja"):el.value;
-    if(!String(v||"").trim())return;
-    a.push('<div class="preview-item"><strong>'+escP(labelP(el))+'</strong><br>'+escP(v)+'</div>');
+
+
+function syncCloneState(srcDoc, cloneDoc){
+  const srcEls=[...srcDoc.querySelectorAll('input,textarea,select,canvas')];
+  const cloneEls=[...cloneDoc.querySelectorAll('input,textarea,select,canvas')];
+  srcEls.forEach((s,i)=>{
+    const c=cloneEls[i]; if(!c)return;
+    if(s.tagName==='INPUT'){
+      if(s.type==='checkbox'||s.type==='radio'){c.checked=s.checked;if(s.checked)c.setAttribute('checked','checked');else c.removeAttribute('checked')}
+      else {c.value=s.value;c.setAttribute('value',s.value)}
+    }else if(s.tagName==='TEXTAREA'){c.value=s.value;c.textContent=s.value}
+    else if(s.tagName==='SELECT'){
+      c.value=s.value;[...c.options].forEach(o=>{if(o.value===s.value)o.setAttribute('selected','selected');else o.removeAttribute('selected')})
+    }else if(s.tagName==='CANVAS'){
+      try{
+        const img=cloneDoc.createElement('img');img.src=s.toDataURL();img.style.width='100%';img.style.height='150px';img.style.objectFit='contain';img.style.border='0';c.replaceWith(img)
+      }catch(e){}
+    }
   });
-  a.push('</div>');
-  const imgs=[...document.querySelectorAll('main img')].filter(i=>i.src&&i.src.startsWith("data:image"));
-  if(imgs.length){a.push('<h2>Fotodokumentation</h2><div class="preview-photos">');imgs.forEach((im,i)=>a.push('<div><strong>Foto '+(i+1)+'</strong><img src="'+im.src+'"></div>'));a.push('</div>')}
-  a.push('<h2>Unterschriften</h2><p>Bitte prüfen Sie das Protokoll. Nach der Prüfung können Sie zur Eingabe zurückkehren und unterschreiben.</p>');
-  c.innerHTML=a.join("");document.getElementById("previewOverlay").style.display="block";document.body.style.overflow="hidden";document.getElementById("previewOverlay").scrollTop=0;
 }
-function closePreview(){document.getElementById("previewOverlay").style.display="none";document.body.style.overflow=""}
+function buildPrintPreview(){
+  const clone=document.documentElement.cloneNode(true);
+  const temp=document.implementation.createHTMLDocument('');
+  temp.replaceChild(temp.importNode(clone,true),temp.documentElement);
+  syncCloneState(document,temp);
+
+  // Remove app-only UI and preview container itself.
+  temp.querySelectorAll('header,.toolbar,.no-print,.sig-actions,.modal,.lock,#printPreview').forEach(el=>el.remove());
+
+  // Mirror the actual @media print appearance on screen.
+  const style=temp.createElement('style');
+  style.textContent=`
+    html,body{background:#fff!important;margin:0!important;padding:0!important}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important}
+    main{padding:0!important;max-width:none!important;margin:0!important}
+    .card{border-radius:0!important;margin:0 0 10px!important;break-inside:avoid!important;box-shadow:none!important}
+    input,textarea,select{border:0!important;padding:2px!important;background:transparent!important;color:#111!important;appearance:none!important;-webkit-appearance:none!important;pointer-events:none!important}
+    button{display:none!important}
+    *{box-sizing:border-box}
+    @page{size:A4;margin:12mm}
+  `;
+  temp.head.appendChild(style);
+
+  // Disable editing/clicking while preserving exactly what will print.
+  temp.querySelectorAll('input,textarea,select').forEach(el=>{el.setAttribute('readonly','readonly');el.setAttribute('tabindex','-1');el.style.pointerEvents='none'});
+  temp.querySelectorAll('a').forEach(el=>el.style.pointerEvents='none');
+
+  // Remove scripts so preview cannot alter data.
+  temp.querySelectorAll('script').forEach(s=>s.remove());
+
+  return '<!doctype html>\n'+temp.documentElement.outerHTML;
+}
+function showPreview(){
+  try{ if(typeof saveSilent==='function') saveSilent(); }catch(e){}
+  const frame=document.getElementById('printPreviewFrame');
+  frame.srcdoc=buildPrintPreview();
+  document.getElementById('printPreview').style.display='block';
+  document.body.style.overflow='hidden';
+  document.getElementById('printPreview').scrollTop=0;
+}
+function closePreview(){
+  document.getElementById('printPreview').style.display='none';
+  document.body.style.overflow='';
+  document.getElementById('printPreviewFrame').srcdoc='';
+}
 </script>
 <script>
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
 }
 </script>
-<div id="previewOverlay" class="preview-overlay"><div class="preview-sheet"><div class="preview-top no-print"><strong>👁 Protokoll-Vorschau</strong><button class="btn primary" type="button" onclick="closePreview()">← Zurück zum Protokoll</button></div><div id="previewContent"></div></div></div></body>
+
+<div id="printPreview">
+  <div id="printPreviewBar">
+    <strong>👁 PDF-Vorschau</strong>
+    <button class="btn secondary" type="button" onclick="closePreview()">← Zurück zum Protokoll</button>
+  </div>
+  <div id="printPreviewFrameWrap"><iframe id="printPreviewFrame" title="PDF-Vorschau"></iframe></div>
+</div>
+</body>
 </html>
