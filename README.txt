@@ -1,6 +1,6 @@
-Wohnungsprotokoll – Version 2.5 (Datenschutz + neue Mieteranschrift)
+Wohnungsprotokoll – Version 2.6 (Datenschutz + neue Mieteranschrift)
 
-Neu in V2.5:
+Neu in V2.6:
 - Feld für die neue Anschrift des Mieters / der Mieterin (Straße/Hausnummer sowie PLZ/Ort), insbesondere für Wohnungsabnahmen
 - alle Datenschutz- und Verschlüsselungsfunktionen aus V2.4 bleiben erhalten
 
@@ -18,3 +18,6 @@ Wichtig:
 Das App-Passwort kann nicht wiederhergestellt werden. Bei Verlust sind verschlüsselte Daten ohne vorhandene, entschlüsselbare Sicherung nicht lesbar. Ein starkes Geräte-Passwort/Bildschirmsperre bleibt zusätzlich wichtig.
 
 Die Anwendung sendet selbst keine Protokolldaten an GitHub. GitHub Pages liefert lediglich die statischen App-Dateien aus.
+
+
+V2.6: Gespeicherte Protokolle können unter „Meine Protokolle“ kopiert werden. Objektzustand, Fotos, Mängel, Zählerstände und weitere Wohnungsdaten bleiben erhalten; Mieterangaben und Unterschriften werden für die neue Übergabe geleert und eine neue Protokollnummer erzeugt.

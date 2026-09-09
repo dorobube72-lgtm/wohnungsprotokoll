@@ -688,13 +688,32 @@ function showProtocols(){
   const modal=document.getElementById("protocolModal"),list=document.getElementById("protocolList"),lib=protocolLibrary();
   const items=Object.entries(lib).sort((a,b)=>(b[1].savedAt||"").localeCompare(a[1].savedAt||""));
   if(!items.length)list.innerHTML='<div class="notice">Noch keine Protokolle gespeichert.</div>';
-  else list.innerHTML=items.map(([id,entry])=>{const d=entry.data||{},title=esc(d.objekt||"Ohne Objektangabe"),meta=[d.art||"",d.datum||"",d.mieter||""].filter(Boolean).map(esc).join(" · ");return `<div class="protocol-item"><div class="protocol-item-title">${title}</div><div class="protocol-item-meta">${meta||esc(id)}</div><div class="protocol-actions"><button type="button" class="btn secondary" onclick="openProtocol('${encodeURIComponent(id)}')">Öffnen</button><button type="button" class="btn danger" onclick="deleteProtocol('${encodeURIComponent(id)}')">Löschen</button></div></div>`}).join("");
+  else list.innerHTML=items.map(([id,entry])=>{const d=entry.data||{},title=esc(d.objekt||"Ohne Objektangabe"),meta=[d.art||"",d.datum||"",d.mieter||""].filter(Boolean).map(esc).join(" · ");return `<div class="protocol-item"><div class="protocol-item-title">${title}</div><div class="protocol-item-meta">${meta||esc(id)}</div><div class="protocol-actions"><button type="button" class="btn secondary" onclick="openProtocol('${encodeURIComponent(id)}')">Öffnen</button><button type="button" class="btn secondary" onclick="copyProtocol('${encodeURIComponent(id)}')">📋 Kopieren</button><button type="button" class="btn danger" onclick="deleteProtocol('${encodeURIComponent(id)}')">Löschen</button></div></div>`}).join("");
   modal.classList.remove("hidden");
 }
 function hideProtocols(){document.getElementById("protocolModal").classList.add("hidden")}
 async function openProtocol(encodedId){
   const id=decodeURIComponent(encodedId),entry=libraryCache[id];if(!entry)return;
   applyData(entry.data||{});await secureWrite("draft",collect());hideProtocols();window.scrollTo({top:0,behavior:"smooth"});
+}
+async function copyProtocol(encodedId){
+  const id=decodeURIComponent(encodedId),entry=libraryCache[id];if(!entry)return;
+  const copy=JSON.parse(JSON.stringify(entry.data||{}));
+  // Objektzustand, Fotos, Mängel, Zähler, Schlüssel etc. bleiben erhalten.
+  // Personen-/Vorgangsdaten werden für die neue Übergabe bewusst geleert.
+  copy.protokollnr="";
+  copy.mieter="";
+  copy.mieter_neue_adresse="";
+  copy.mieter_neuer_ort="";
+  copy.mietzeit="";
+  copy.datum=new Date().toISOString().slice(0,10);
+  copy.art="Übergabe / Einzug";
+  copy.signatures={tenant:"",landlord:""};
+  applyData(copy);
+  initBranding(); // erzeugt eine neue eindeutige Protokollnummer
+  await secureWrite("draft",collect());
+  hideProtocols();window.scrollTo({top:0,behavior:"smooth"});
+  alert("Protokoll kopiert. Fotos, Mängel, Zählerstände und Wohnungsdaten wurden übernommen. Mieterangaben und Unterschriften wurden geleert; die Kopie ist als „Übergabe / Einzug“ vorbereitet. Bitte anschließend speichern.");
 }
 async function deleteProtocol(encodedId){
   const id=decodeURIComponent(encodedId);if(!confirm("Dieses gespeicherte Protokoll wirklich löschen?"))return;
