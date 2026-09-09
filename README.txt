@@ -41,3 +41,7 @@ V3.4: 12-Stunden-Komfortfreigabe korrigiert. Nach einer erfolgreichen Passwortei
 V3.5: Startfehler der 12-Stunden-Freigabe behoben. Beim App-Start wird jetzt zuerst die gespeicherte, noch gültige Freigabe geprüft. Nur wenn keine gültige Freigabe vorhanden ist, erscheint die Passwortabfrage.
 
 V3.6: Vorschau zeigt Art des Protokolls und gewählten Allgemeinzustand als Text. Bei Übergabe heißt das Adressfeld „Adresse“, bei Abnahme „Neue Adresse“. Telefon und E-Mail wurden ergänzt. Für Strom- und Wasserzähler können Fotos aufgenommen, verschlüsselt gespeichert und in Vorschau/PDF angezeigt werden; Heizkostenverteiler bleiben ohne Fotofunktion.
+
+V3.7: Der blaue gebrandete Kopfbereich mit Wohnungsprotokoll-Icon, Titel, Eigentümer und Domoconzept wird wieder in PDF-Vorschau und PDF/Druck angezeigt. Kompakte A4-Darstellung; alle Funktionen aus V3.6 bleiben erhalten.
+
+V3.8: Raum- und Mängelfotos werden vollständig und proportional ohne Beschnitt dargestellt. Die quadratische Zwangsdarstellung und object-fit: cover wurden entfernt. Zählerfotos bleiben unverändert.
