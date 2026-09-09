@@ -675,23 +675,31 @@ async function secureRead(name,fallback){
 function getCryptoConfig(){try{return JSON.parse(localStorage.getItem(cryptoConfigKey)||"null")}catch(e){return null}}
 function lockMessage(msg=""){document.getElementById("lockError").textContent=msg}
 
-async function rememberSession(){
-  try{await dbPut("sessionUnlock",{key:cryptoKey,expires:Date.now()+SESSION_MS})}catch(e){}
+const SESSION_KEY="wohnungsprotokoll_unlock_v34";
+const SESSION_MS=12*60*60*1000;
+function rememberSession(password){
+  try{
+    if(!password) return;
+    localStorage.setItem(SESSION_KEY,JSON.stringify({password,expires:Date.now()+SESSION_MS}));
+  }catch(e){}
 }
-async function clearSession(){try{await dbDelete("sessionUnlock")}catch(e){}}
+function clearSession(){
+  try{localStorage.removeItem(SESSION_KEY)}catch(e){}
+}
 async function trySessionUnlock(){
   const cfg=getCryptoConfig(); if(!cfg)return false;
   try{
-    const s=await dbGet("sessionUnlock");
-    if(!s||!s.key||Date.now()>s.expires){await clearSession();return false}
-    const test=await decryptObject(cfg.verifier,s.key);
+    const s=JSON.parse(localStorage.getItem(SESSION_KEY)||"null");
+    if(!s||!s.password||Date.now()>s.expires){clearSession();return false}
+    const k=await deriveKey(s.password,b64ToBytes(cfg.salt));
+    const test=await decryptObject(cfg.verifier,k);
     if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("session invalid");
-    cryptoKey=s.key;sessionPassword="";
+    cryptoKey=k;sessionPassword=s.password;
     await finishUnlock(); return true;
-  }catch(e){await clearSession();cryptoKey=null;sessionPassword="";return false}
+  }catch(e){clearSession();cryptoKey=null;sessionPassword="";return false}
 }
-async function lockNow(){
-  await clearSession();cryptoKey=null;sessionPassword="";appReady=false;
+function lockNow(){
+  clearSession();cryptoKey=null;sessionPassword="";appReady=false;
   document.getElementById("unlockPassword").value="";
   showSecurityGate();
 }
@@ -721,7 +729,7 @@ async function setupEncryption(){
   try{
     lockMessage("Verschlüsselung wird eingerichtet …");
     const salt=crypto.getRandomValues(new Uint8Array(16));
-    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;await rememberSession();
+    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;rememberSession(sessionPassword);
     const verifier=await encryptObject({check:"wohnungsprotokoll-v24"});
     localStorage.setItem(cryptoConfigKey,JSON.stringify({v:1,salt:bytesToB64(salt),iterations:KDF_ITERATIONS,verifier}));
     await migrateLegacyPlaintext();
@@ -736,7 +744,7 @@ async function unlockApp(){
     const key=await deriveKey(password,b64ToBytes(cfg.salt));
     const test=await decryptObject(cfg.verifier,key);
     if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("wrong password");
-    cryptoKey=key;sessionPassword=password;await rememberSession();
+    cryptoKey=key;sessionPassword=password;rememberSession(sessionPassword);
     await finishUnlock();
   }catch(e){cryptoKey=null;sessionPassword="";lockMessage("Passwort nicht korrekt.");}
 }
