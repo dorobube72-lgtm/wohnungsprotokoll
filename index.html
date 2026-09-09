@@ -914,7 +914,10 @@ buildRooms();
 buildHeatMeters();
 ["Wohnung","Haustür","Briefkasten","Keller"].forEach(x=>addKey({art:x}));
 setupSig("sigTenant"); setupSig("sigLandlord");
-initBranding(); updatePhotoSummary(); showSecurityGate();
+initBranding(); updatePhotoSummary();
+trySessionUnlock().then(ok=>{
+  if(!ok) showSecurityGate();
+});
 document.addEventListener("input",e=>{if(appReady && !e.target.closest("#lockScreen"))scheduleSecureSave()});
 
 function escP(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}

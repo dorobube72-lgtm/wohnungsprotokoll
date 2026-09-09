@@ -37,3 +37,5 @@ V3.2: Jeder Raum hat einen Schalter „Raum nicht vorhanden“. Solche Räume we
 V3.3: Abstellraum und Keller sind getrennte Räume. Zusätzlich gibt es „Weiteres Zimmer 1“ und „Weiteres Zimmer 2“. Beide zusätzlichen Räume können über das Feld „Raumbezeichnung“ individuell benannt werden; der eigene Name erscheint in Vorschau und PDF.
 
 V3.4: 12-Stunden-Komfortfreigabe korrigiert. Nach einer erfolgreichen Passworteingabe kann die installierte PWA auch nach vollständigem Schließen innerhalb von 12 Stunden automatisch entsperren. Technischer Hinweis: Damit dies in einer normalen Browser-PWA zuverlässig über Prozess-Neustarts funktioniert, wird das App-Passwort während dieses Zeitfensters lokal im Browser-Speicher gehalten. „Sperren“ und der Ablauf der 12 Stunden löschen diese Freigabe. Das ist bewusst ein Komfort-/Sicherheits-Kompromiss; die Protokolldaten bleiben verschlüsselt gespeichert.
+
+V3.5: Startfehler der 12-Stunden-Freigabe behoben. Beim App-Start wird jetzt zuerst die gespeicherte, noch gültige Freigabe geprüft. Nur wenn keine gültige Freigabe vorhanden ist, erscheint die Passwortabfrage.
