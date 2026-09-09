@@ -27,3 +27,5 @@ Version 2.7: Neuer Kopfbereich mit Wohnungs-App-Icon, Titel „Wohnungsprotokoll
 Version 2.8: 12-Stunden-Arbeitssitzung (Passwort nur einmal pro Sitzung), manueller „Sperren“-Button und automatischer Zeitstempel beim Unterschreiben. Keine Adress-Automatik, Name bleibt Wohnungsprotokoll.
 
 Version 2.9: 12-Stunden-Freigabe bleibt über vollständiges Schließen der PWA erhalten; manueller Sperren-Button löscht sie sofort. Neue schreibgeschützte Protokoll-Vorschau vor der Unterschrift. Hinweis: Die persistente 12h-Freigabe ist komfortabler, reduziert während dieses Zeitfensters aber den zusätzlichen Schutz gegenüber einer erneuten Passworteingabe.
+
+V3.0: Korrigierte 12-Stunden-Freigabe über App-Neustarts. Das Passwort wird dafür NICHT gespeichert; stattdessen wird der nicht exportierbare WebCrypto-Schlüssel mit Ablaufzeit lokal in IndexedDB gehalten. Manueller Sperren-Button löscht ihn. Sichtbarer Vorschau-Button in der unteren Leiste.

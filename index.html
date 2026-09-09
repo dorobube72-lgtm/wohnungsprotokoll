@@ -108,7 +108,7 @@
   .security-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:6px 9px;border:1px solid #b7c9b9;background:#eef6ef;border-radius:999px;margin-top:8px}
   @media print{.lock-screen{display:none!important}}
 
-</style>
+.preview-overlay{position:fixed;inset:0;background:#eef3f8;z-index:9998;overflow:auto;display:none}.preview-sheet{max-width:900px;margin:18px auto;background:#fff;padding:22px;border-radius:18px;box-shadow:0 8px 30px #0002}.preview-top{position:sticky;top:0;z-index:2;display:flex;gap:10px;justify-content:space-between;align-items:center;background:#eef3f8;padding:10px 0}.preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 18px}.preview-item{padding:5px 0;border-bottom:1px solid #edf0f3}.preview-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.preview-photos img{width:100%;max-height:320px;object-fit:contain;border:1px solid #ddd;border-radius:10px}@media(max-width:650px){.preview-sheet{margin:0;border-radius:0;padding:14px}.preview-grid,.preview-photos{grid-template-columns:1fr}}</style>
 </head>
 <body>
 <header>
@@ -278,7 +278,7 @@
 <div class="toolbar">
   <button class="btn secondary" onclick="saveAll()">💾 Speichern</button>
   <button class="btn secondary" onclick="showProtocols()">📂 Meine Protokolle</button>
-  <button class="btn" onclick="printProtocol()">PDF</button>
+  <button class="btn secondary" onclick="showPreview()">👁 Vorschau</button><button class="btn" onclick="printProtocol()">PDF</button>
   <button class="btn danger" onclick="newProtocol()">Neu</button><button class="btn secondary" onclick="lockNow()">🔒 Sperren</button>
 </div>
 
@@ -608,24 +608,23 @@ async function secureRead(name,fallback){
 function getCryptoConfig(){try{return JSON.parse(localStorage.getItem(cryptoConfigKey)||"null")}catch(e){return null}}
 function lockMessage(msg=""){document.getElementById("lockError").textContent=msg}
 
-function rememberSession(password){
-  try{sessionStorage.setItem(SESSION_KEY,JSON.stringify({password,expires:Date.now()+SESSION_MS}))}catch(e){}
+async function rememberSession(){
+  try{await dbPut("sessionUnlock",{key:cryptoKey,expires:Date.now()+SESSION_MS})}catch(e){}
 }
-function clearSession(){try{sessionStorage.removeItem(SESSION_KEY)}catch(e){}}
+async function clearSession(){try{await dbDelete("sessionUnlock")}catch(e){}}
 async function trySessionUnlock(){
   const cfg=getCryptoConfig(); if(!cfg)return false;
   try{
-    const s=JSON.parse(sessionStorage.getItem(SESSION_KEY)||"null");
-    if(!s||!s.password||Date.now()>s.expires){clearSession();return false}
-    const k=await deriveKey(s.password,b64ToBytes(cfg.salt));
-    const test=await decryptObject(cfg.verifier,k);
+    const s=await dbGet("sessionUnlock");
+    if(!s||!s.key||Date.now()>s.expires){await clearSession();return false}
+    const test=await decryptObject(cfg.verifier,s.key);
     if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("session invalid");
-    cryptoKey=k;sessionPassword=s.password;rememberSession(s.password);
+    cryptoKey=s.key;sessionPassword="";
     await finishUnlock(); return true;
-  }catch(e){clearSession();cryptoKey=null;sessionPassword="";return false}
+  }catch(e){await clearSession();cryptoKey=null;sessionPassword="";return false}
 }
-function lockNow(){
-  clearSession();cryptoKey=null;sessionPassword="";appReady=false;
+async function lockNow(){
+  await clearSession();cryptoKey=null;sessionPassword="";appReady=false;
   document.getElementById("unlockPassword").value="";
   showSecurityGate();
 }
@@ -655,7 +654,7 @@ async function setupEncryption(){
   try{
     lockMessage("Verschlüsselung wird eingerichtet …");
     const salt=crypto.getRandomValues(new Uint8Array(16));
-    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;rememberSession(p1);
+    cryptoKey=await deriveKey(p1,salt); sessionPassword=p1;await rememberSession();
     const verifier=await encryptObject({check:"wohnungsprotokoll-v24"});
     localStorage.setItem(cryptoConfigKey,JSON.stringify({v:1,salt:bytesToB64(salt),iterations:KDF_ITERATIONS,verifier}));
     await migrateLegacyPlaintext();
@@ -670,7 +669,7 @@ async function unlockApp(){
     const key=await deriveKey(password,b64ToBytes(cfg.salt));
     const test=await decryptObject(cfg.verifier,key);
     if(!test||test.check!=="wohnungsprotokoll-v24")throw new Error("wrong password");
-    cryptoKey=key;sessionPassword=password;rememberSession(password);
+    cryptoKey=key;sessionPassword=password;await rememberSession();
     await finishUnlock();
   }catch(e){cryptoKey=null;sessionPassword="";lockMessage("Passwort nicht korrekt.");}
 }
@@ -841,11 +840,36 @@ buildHeatMeters();
 setupSig("sigTenant"); setupSig("sigLandlord");
 initBranding(); updatePhotoSummary(); showSecurityGate();
 document.addEventListener("input",e=>{if(appReady && !e.target.closest("#lockScreen"))scheduleSecureSave()});
+
+function escP(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function labelP(el){
+  if(el.id){const l=document.querySelector('label[for="'+CSS.escape(el.id)+'"]');if(l)return l.textContent.trim()}
+  const l=el.closest("label"); if(l)return (l.innerText||"").replace((el.value||""),"").trim();
+  return el.name||el.id||"Angabe";
+}
+function showPreview(){
+  const c=document.getElementById("previewContent"); let a=[];
+  a.push('<h1>Wohnungsprotokoll</h1><div class="small"><strong>Abnahme/Übergabe</strong></div>');
+  a.push('<h2>Protokolldaten</h2><div class="preview-grid">');
+  document.querySelectorAll('main input,main select,main textarea').forEach(el=>{
+    if(el.type==="file"||el.type==="button"||el.type==="submit"||el.closest(".no-print"))return;
+    if((el.type==="radio"||el.type==="checkbox")&&!el.checked)return;
+    let v=(el.type==="radio"||el.type==="checkbox")?(el.value||"Ja"):el.value;
+    if(!String(v||"").trim())return;
+    a.push('<div class="preview-item"><strong>'+escP(labelP(el))+'</strong><br>'+escP(v)+'</div>');
+  });
+  a.push('</div>');
+  const imgs=[...document.querySelectorAll('main img')].filter(i=>i.src&&i.src.startsWith("data:image"));
+  if(imgs.length){a.push('<h2>Fotodokumentation</h2><div class="preview-photos">');imgs.forEach((im,i)=>a.push('<div><strong>Foto '+(i+1)+'</strong><img src="'+im.src+'"></div>'));a.push('</div>')}
+  a.push('<h2>Unterschriften</h2><p>Bitte prüfen Sie das Protokoll. Nach der Prüfung können Sie zur Eingabe zurückkehren und unterschreiben.</p>');
+  c.innerHTML=a.join("");document.getElementById("previewOverlay").style.display="block";document.body.style.overflow="hidden";document.getElementById("previewOverlay").scrollTop=0;
+}
+function closePreview(){document.getElementById("previewOverlay").style.display="none";document.body.style.overflow=""}
 </script>
 <script>
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
 }
 </script>
-</body>
+<div id="previewOverlay" class="preview-overlay"><div class="preview-sheet"><div class="preview-top no-print"><strong>👁 Protokoll-Vorschau</strong><button class="btn primary" type="button" onclick="closePreview()">← Zurück zum Protokoll</button></div><div id="previewContent"></div></div></div></body>
 </html>
