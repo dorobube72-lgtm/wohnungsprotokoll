@@ -21,3 +21,5 @@ Die Anwendung sendet selbst keine Protokolldaten an GitHub. GitHub Pages liefert
 
 
 V2.6: Gespeicherte Protokolle können unter „Meine Protokolle“ kopiert werden. Objektzustand, Fotos, Mängel, Zählerstände und weitere Wohnungsdaten bleiben erhalten; Mieterangaben und Unterschriften werden für die neue Übergabe geleert und eine neue Protokollnummer erzeugt.
+
+Version 2.7: Neuer Kopfbereich mit Wohnungs-App-Icon, Titel „Wohnungsprotokoll“ und Untertitel „Abnahme/Übergabe“. Alle Funktionen aus V2.6 bleiben erhalten.
