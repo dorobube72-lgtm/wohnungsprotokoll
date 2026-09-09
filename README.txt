@@ -25,3 +25,5 @@ V2.6: Gespeicherte Protokolle können unter „Meine Protokolle“ kopiert werde
 Version 2.7: Neuer Kopfbereich mit Wohnungs-App-Icon, Titel „Wohnungsprotokoll“ und Untertitel „Abnahme/Übergabe“. Alle Funktionen aus V2.6 bleiben erhalten.
 
 Version 2.8: 12-Stunden-Arbeitssitzung (Passwort nur einmal pro Sitzung), manueller „Sperren“-Button und automatischer Zeitstempel beim Unterschreiben. Keine Adress-Automatik, Name bleibt Wohnungsprotokoll.
+
+Version 2.9: 12-Stunden-Freigabe bleibt über vollständiges Schließen der PWA erhalten; manueller Sperren-Button löscht sie sofort. Neue schreibgeschützte Protokoll-Vorschau vor der Unterschrift. Hinweis: Die persistente 12h-Freigabe ist komfortabler, reduziert während dieses Zeitfensters aber den zusätzlichen Schutz gegenüber einer erneuten Passworteingabe.
