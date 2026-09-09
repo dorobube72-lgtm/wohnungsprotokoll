@@ -122,6 +122,12 @@
 
 .custom-room-name{display:block;margin:-2px 0 10px;font-size:.92rem;color:#5f6b7a}
 .custom-room-name input{margin-top:5px;max-width:320px}
+
+.meter-row-wrap{margin-bottom:10px}
+.meter-photo-tools{display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.meter-photo-preview{margin-top:7px;display:none}
+.meter-photo-preview img{max-width:220px;max-height:170px;object-fit:contain;border:1px solid #d8dee8;border-radius:10px;background:#fff}
+@media print{.meter-photo-tools{display:none!important}.meter-photo-preview{display:block!important}.meter-photo-preview:empty{display:none!important}}
 </style>
 </head>
 <body>
@@ -140,8 +146,8 @@
   <section class="card">
     <h2>1. Grunddaten</h2>
     <div class="chips">
-      <label class="chip"><input type="radio" name="art" value="Übergabe / Einzug"> Übergabe / Einzug</label>
-      <label class="chip"><input type="radio" name="art" value="Abnahme / Auszug"> Abnahme / Auszug</label>
+      <label class="chip"><input type="radio" name="art" value="Übergabe / Einzug" onchange="updateAddressLabels()"> Übergabe / Einzug</label>
+      <label class="chip"><input type="radio" name="art" value="Abnahme / Auszug" onchange="updateAddressLabels()"> Abnahme / Auszug</label>
     </div>
     <div class="grid2">
       <div><label>Protokoll-Nr.</label><input type="text" data-save="protokollnr" readonly></div>
@@ -161,8 +167,10 @@
     <div class="small" style="margin-top:5px">Darstellung im Protokoll: „[Vorname] Dahlbüdding, vertreten durch Domoconzept Immobilien- und Verwaltungs GmbH &amp; Co. KG“</div>
     <label>Mieter/in</label><input type="text" data-save="mieter">
     <div class="grid2">
-      <div><label>Neue Anschrift des Mieters / der Mieterin</label><input type="text" data-save="mieter_neue_adresse" placeholder="Straße, Hausnummer"></div>
-      <div><label>PLZ / Ort (neue Anschrift)</label><input type="text" data-save="mieter_neuer_ort" placeholder="PLZ, Ort"></div>
+      <div><label id="mieterAdresseLabel">Adresse</label><input type="text" data-save="mieter_neue_adresse" placeholder="Straße, Hausnummer"></div>
+      <div><label id="mieterOrtLabel">PLZ / Ort</label><input type="text" data-save="mieter_neuer_ort" placeholder="PLZ, Ort"></div>
+      <div><label>Telefon</label><input type="tel" data-save="mieter_telefon" inputmode="tel"></div>
+      <div><label>E-Mail-Adresse</label><input type="email" data-save="mieter_email" inputmode="email"></div>
     </div>
     <label>Protokoll geführt durch</label><input type="text" data-save="vermieter" placeholder="Name der Person, die die Übergabe / Abnahme durchführt">
     <label>Weitere anwesende Personen</label><input type="text" data-save="anwesend">
@@ -349,6 +357,7 @@ let sessionPassword = ""; // nur im Arbeitsspeicher bis die App geschlossen/gesp
 let appReady = false;
 let photoStore = {};
 let defectStore = {};
+let meterPhotoStore = {};
 let libraryCache = {};
 
 
@@ -570,13 +579,57 @@ function updatePhotoSummary(){
   const count=roomCount+defectCount;
   document.getElementById("photoSummary").textContent=count?`${count} Foto${count===1?"":"s"} im Protokoll hinterlegt.`:"Noch keine Fotos hinzugefügt.";
 }
+function meterCanHavePhoto(art){
+  const a=(art||"").toLowerCase();
+  return a.includes("strom") || a.includes("wasser");
+}
+function renderMeterPhoto(idx){
+  const box=document.getElementById("meter_photo_preview_"+idx);
+  const tools=document.getElementById("meter_photo_tools_"+idx);
+  const art=document.querySelector(`[data-save="meter_${idx}_art"]`)?.value||"";
+  const allowed=meterCanHavePhoto(art);
+  if(tools) tools.style.display=allowed?"flex":"none";
+  if(!box)return;
+  const src=meterPhotoStore[idx]||"";
+  box.innerHTML=src?`<img src="${src}" alt="Foto des Zählers">`:"";
+  box.style.display=src?"block":"none";
+}
+function handleMeterPhoto(idx,e){
+  const file=e.target.files?.[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height,max=1600;
+      if(w>h&&w>max){h=Math.round(h*max/w);w=max}
+      else if(h>=w&&h>max){w=Math.round(w*max/h);h=max}
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      meterPhotoStore[idx]=cv.toDataURL("image/jpeg",0.8);
+      renderMeterPhoto(idx);scheduleSecureSave();
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);e.target.value="";
+}
+function deleteMeterPhoto(idx){
+  if(!meterPhotoStore[idx])return;
+  if(!confirm("Dieses Zählerfoto löschen?"))return;
+  delete meterPhotoStore[idx];renderMeterPhoto(idx);scheduleSecureSave();
+}
 function addMeter(data={}){
   const wrap=document.getElementById("meters"), idx=wrap.children.length;
+  const outer=document.createElement("div"); outer.className="meter-row-wrap";
   const d=document.createElement("div"); d.className="meter-row";
-  d.innerHTML=`<input type="text" placeholder="Art, z. B. Strom" data-save="meter_${idx}_art" value="${data.art||""}">
+  d.innerHTML=`<input type="text" placeholder="Art, z. B. Strom" data-save="meter_${idx}_art" value="${data.art||""}" oninput="renderMeterPhoto(${idx})">
     <input type="text" placeholder="Zählernummer" data-save="meter_${idx}_nr" value="${data.nr||""}">
     <input type="text" placeholder="Zählerstand" data-save="meter_${idx}_stand" value="${data.stand||""}">`;
-  wrap.appendChild(d);
+  const tools=document.createElement("div");tools.className="meter-photo-tools no-print";tools.id="meter_photo_tools_"+idx;
+  tools.innerHTML=`<label class="btn secondary" style="cursor:pointer">📷 Zähler fotografieren<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleMeterPhoto(${idx},event)"></label>
+    <button type="button" class="btn secondary" onclick="deleteMeterPhoto(${idx})">Foto löschen</button>`;
+  const preview=document.createElement("div");preview.className="meter-photo-preview";preview.id="meter_photo_preview_"+idx;
+  outer.appendChild(d);outer.appendChild(tools);outer.appendChild(preview);wrap.appendChild(outer);
+  renderMeterPhoto(idx);
 }
 function addHeatMeter(data={}){
   const wrap=document.getElementById("heatmeters"), idx=wrap.children.length;
@@ -604,6 +657,23 @@ function addKey(data={}){
     <input type="text" placeholder="Bemerkung" data-save="key_${idx}_bem" value="${data.bem||""}">`;
   wrap.appendChild(d);
 }
+function updateAddressLabels(){
+  const art=document.querySelector('input[name="art"]:checked')?.value||"";
+  const abnahme=art.includes("Abnahme");
+  const l1=document.getElementById("mieterAdresseLabel"),l2=document.getElementById("mieterOrtLabel");
+  if(l1)l1.textContent=abnahme?"Neue Adresse":"Adresse";
+  if(l2)l2.textContent=abnahme?"PLZ / Ort (neue Adresse)":"PLZ / Ort";
+}
+function selectedGeneralConditions(doc=document){
+  const items=[
+    ["renoviert","frisch / vollständig renoviert"],
+    ["gepflegt","gepflegt"],
+    ["unrenoviert","unrenoviert"],
+    ["besenrein","besenrein"],
+    ["geraumt","vollständig geräumt"]
+  ];
+  return items.filter(([k])=>doc.querySelector(`[data-save="${k}"]`)?.checked).map(([,label])=>label);
+}
 function collect(){
   const obj={};
   document.querySelectorAll("[data-save]").forEach(el=>{
@@ -615,6 +685,7 @@ function collect(){
   const art=document.querySelector('input[name="art"]:checked'); if(art)obj.art=art.value;
   obj.photos=photoStore;
   obj.defects=defectStore;
+  obj.meterPhotos=meterPhotoStore;
   obj.signatures={
     tenant:document.getElementById("sigTenant").toDataURL(),
     landlord:document.getElementById("sigLandlord").toDataURL()
@@ -762,7 +833,7 @@ async function finishUnlock(){
   try{
     libraryCache=await secureRead("library",{});
     const draft=await secureRead("draft",null);
-    if(draft){applyData(draft)}else{photoStore={};defectStore={};renderAllRoomsData();}
+    if(draft){applyData(draft)}else{photoStore={};defectStore={};meterPhotoStore={};renderAllRoomsData();}
     appReady=true;lockMessage("");document.getElementById("lockScreen").style.display="none";
   }catch(e){console.error(e);cryptoKey=null;sessionPassword="";lockMessage("Die gespeicherten Daten konnten nicht entschlüsselt werden.");}
 }
@@ -770,7 +841,7 @@ function renderAllRoomsData(){
   ROOMS.forEach(room=>{const id=slug(room);renderPhotos(id);renderDefects(id)});updatePhotoSummary();
 }
 function applyData(obj){
-  photoStore=obj.photos||{};defectStore=obj.defects||{};
+  photoStore=obj.photos||{};defectStore=obj.defects||{};meterPhotoStore=obj.meterPhotos||{};
   document.querySelectorAll("[data-save]").forEach(el=>{
     const k=el.dataset.save;
     if(el.type==="checkbox")el.checked=!!obj[k];
@@ -780,7 +851,7 @@ function applyData(obj){
   document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=(r.value===obj.art));
   clearSig("sigTenant");clearSig("sigLandlord");
   if(obj.signatures){loadSig("sigTenant",obj.signatures.tenant);loadSig("sigLandlord",obj.signatures.landlord)}
-  renderAllRoomsData();refreshRoomAbsentStates();refreshCustomRoomTitles();initBranding();
+  renderAllRoomsData();refreshRoomAbsentStates();refreshCustomRoomTitles();updateAddressLabels();document.querySelectorAll('#meters .meter-row-wrap').forEach((_,i)=>renderMeterPhoto(i));initBranding();
 }
 function protocolLibrary(){return libraryCache||{}}
 function protocolId(data){return data.protokollnr||`WP-${Date.now()}`}
@@ -866,7 +937,7 @@ function printProtocol(){
 }
 async function saveSilent(){await saveDraftEncrypted()}
 function resetForNewProtocol(){
-  photoStore={};defectStore={};
+  photoStore={};defectStore={};meterPhotoStore={};
   document.querySelectorAll("[data-save]").forEach(el=>{
     const k=el.dataset.save;
     if(el.type==="checkbox"||el.type==="radio")el.checked=false;
@@ -875,7 +946,7 @@ function resetForNewProtocol(){
     else el.value="";
   });
   document.querySelectorAll('input[name="art"]').forEach(r=>r.checked=false);
-  clearSig("sigTenant");clearSig("sigLandlord");signatureTimestamp="";document.getElementById("signatureStampWrap").style.display="none";renderAllRoomsData();refreshRoomAbsentStates();refreshCustomRoomTitles();initBranding();
+  clearSig("sigTenant");clearSig("sigLandlord");signatureTimestamp="";document.getElementById("signatureStampWrap").style.display="none";renderAllRoomsData();refreshRoomAbsentStates();refreshCustomRoomTitles();updateAddressLabels();document.querySelectorAll('#meters .meter-row-wrap').forEach((_,i)=>renderMeterPhoto(i));initBranding();
 }
 async function newProtocol(){
   if(!confirm("Wirklich ein neues Protokoll beginnen? Das aktuelle Formular wird geleert. Gespeicherte Protokolle unter „Meine Protokolle“ bleiben erhalten."))return;
@@ -914,7 +985,7 @@ buildRooms();
 buildHeatMeters();
 ["Wohnung","Haustür","Briefkasten","Keller"].forEach(x=>addKey({art:x}));
 setupSig("sigTenant"); setupSig("sigLandlord");
-initBranding(); updatePhotoSummary();
+initBranding(); updatePhotoSummary(); updateAddressLabels();
 trySessionUnlock().then(ok=>{
   if(!ok) showSecurityGate();
 });
@@ -953,6 +1024,22 @@ function buildPrintPreview(){
   const temp=document.implementation.createHTMLDocument('');
   temp.replaceChild(temp.importNode(clone,true),temp.documentElement);
   syncCloneState(document,temp);
+  const checkedArt=document.querySelector('input[name="art"]:checked')?.value||"";
+  const grund=temp.querySelector('main section.card');
+  if(grund && checkedArt){
+    const box=temp.createElement('div');box.className='preview-explicit';
+    box.innerHTML='<strong>Art des Protokolls:</strong> '+checkedArt;
+    grund.insertBefore(box,grund.children[1]||null);
+  }
+  const conditions=selectedGeneralConditions(document);
+  const sections=[...temp.querySelectorAll('main section.card')];
+  const zustand=sections.find(s=>s.querySelector('h2')?.textContent.includes('Allgemeiner Zustand'));
+  if(zustand){
+    zustand.querySelector('.chips')?.remove();
+    const box=temp.createElement('div');box.className='preview-explicit';
+    box.innerHTML='<strong>Allgemeinzustand:</strong> '+(conditions.length?conditions.join(' · '):'keine Auswahl');
+    const h2=zustand.querySelector('h2'); if(h2)h2.insertAdjacentElement('afterend',box); else zustand.prepend(box);
+  }
   temp.querySelectorAll('.status-row').forEach(row=>{
     const checked=row.querySelector('input[type="radio"]:checked');
     const name=row.querySelector('.name')?.textContent?.trim()||'';
@@ -969,7 +1056,7 @@ function buildPrintPreview(){
     html,body{background:#fff!important;margin:0!important;padding:0!important}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important}
     main{padding:0!important;max-width:none!important;margin:0!important}
-    .card{border-radius:0!important;margin:0 0 10px!important;break-inside:avoid!important;box-shadow:none!important}.status-row{grid-template-columns:1fr auto!important}.preview-status{padding:4px 0!important;text-align:right!important}
+    .card{border-radius:0!important;margin:0 0 10px!important;break-inside:avoid!important;box-shadow:none!important}.preview-explicit{padding:6px 0!important;margin:3px 0 8px!important}.meter-photo-preview{display:block!important}.meter-photo-preview:empty{display:none!important}.status-row{grid-template-columns:1fr auto!important}.preview-status{padding:4px 0!important;text-align:right!important}
     input,textarea,select{border:0!important;padding:2px!important;background:transparent!important;color:#111!important;appearance:none!important;-webkit-appearance:none!important;pointer-events:none!important}
     button{display:none!important}
     *{box-sizing:border-box}
