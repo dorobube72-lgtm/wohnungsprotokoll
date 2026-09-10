@@ -45,3 +45,5 @@ V3.6: Vorschau zeigt Art des Protokolls und gewählten Allgemeinzustand als Text
 V3.7: Der blaue gebrandete Kopfbereich mit Wohnungsprotokoll-Icon, Titel, Eigentümer und Domoconzept wird wieder in PDF-Vorschau und PDF/Druck angezeigt. Kompakte A4-Darstellung; alle Funktionen aus V3.6 bleiben erhalten.
 
 V3.8: Raum- und Mängelfotos werden vollständig und proportional ohne Beschnitt dargestellt. Die quadratische Zwangsdarstellung und object-fit: cover wurden entfernt. Zählerfotos bleiben unverändert.
+
+V3.9: In PDF und PDF-Vorschau werden bei Zählerständen und Heizkostenverteilern nur tatsächlich erfasste Einträge angezeigt. Leere Platzhalterzeilen bleiben in der App zur Eingabe sichtbar, werden in der Ausgabe aber ausgeblendet.

@@ -66,6 +66,7 @@
   .hidden{display:none}
   .summary{font-size:13px;color:var(--muted);margin-bottom:8px}
   @media print{
+    .output-empty-row{display:none!important}
     .toolbar,.photo-btn,.signature-actions,.no-print{display:none!important}
     header{display:block!important;background:linear-gradient(135deg,#0878ad,#04557f)!important;color:#fff!important;padding:14px 18px!important;margin:0 0 12px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     .header-brand{display:flex!important;align-items:center!important;gap:14px!important}
@@ -932,8 +933,29 @@ function setupSig(id){
 }
 function clearSig(id){ const c=document.getElementById(id); c.getContext("2d").clearRect(0,0,c.width,c.height); }
 function loadSig(id,data){ if(!data)return; const c=document.getElementById(id),ctx=c.getContext("2d"),im=new Image(); im.onload=()=>ctx.drawImage(im,0,0,c.width/devicePixelRatio,180); im.src=data; }
+
+function markEmptyOutputRows(root=document){
+  root.querySelectorAll('#meters .meter-row-wrap').forEach(wrap=>{
+    const vals=[...wrap.querySelectorAll('.meter-row input')].map(i=>(i.value||"").trim());
+    const hasPhoto=!!wrap.querySelector('.meter-photo-preview img[src]');
+    // A meter counts as recorded if at least one real value or a meter photo exists.
+    wrap.classList.toggle('output-empty-row', !vals.some(Boolean) && !hasPhoto);
+  });
+  root.querySelectorAll('#heatmeters .heat-row').forEach(row=>{
+    const vals=[...row.querySelectorAll('input')].map(i=>(i.value||"").trim());
+    // Pre-filled room names alone do not count as an existing heating cost allocator.
+    const hasActualData=vals.slice(1).some(Boolean);
+    row.classList.toggle('output-empty-row', !hasActualData);
+  });
+}
+function clearOutputRowMarks(root=document){
+  root.querySelectorAll('.output-empty-row').forEach(el=>el.classList.remove('output-empty-row'));
+}
+
 function printProtocol(){
   refreshRoomAbsentStates();
+  markEmptyOutputRows(document);
+  setTimeout(()=>clearOutputRowMarks(document),1500);
   saveSilent();
   const obj=(document.querySelector('[data-save="objekt"]').value||"Wohnung").replace(/[^\wäöüÄÖÜß-]+/g,"_");
   const art=(document.querySelector('input[name="art"]:checked')?.value||"Protokoll").includes("Auszug")?"Abnahme":"Uebergabe";
@@ -1026,7 +1048,9 @@ function syncCloneState(srcDoc, cloneDoc){
 function buildPrintPreview(){
   refreshRoomAbsentStates();
   refreshCustomRoomTitles();
+  markEmptyOutputRows(document);
   const clone=document.documentElement.cloneNode(true);
+  clearOutputRowMarks(document);
   const temp=document.implementation.createHTMLDocument('');
   temp.replaceChild(temp.importNode(clone,true),temp.documentElement);
   syncCloneState(document,temp);
@@ -1059,6 +1083,7 @@ function buildPrintPreview(){
   // Mirror the actual @media print appearance on screen.
   const style=temp.createElement('style');
   style.textContent=`
+    .output-empty-row{display:none!important}
     html,body{background:#fff!important;margin:0!important;padding:0!important}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important}
     header{display:block!important;background:linear-gradient(135deg,#0878ad,#04557f)!important;color:#fff!important;padding:14px 18px!important;margin:0 0 12px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
