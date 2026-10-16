@@ -68,7 +68,7 @@
   @media print{
     .output-empty-row{display:none!important}
     .toolbar,.photo-btn,.signature-actions,.no-print{display:none!important}
-    header{display:block!important;background:linear-gradient(135deg,#0878ad,#04557f)!important;color:#fff!important;padding:14px 18px!important;margin:0 0 12px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    header{display:block!important;position:static!important;visibility:visible!important;background:linear-gradient(135deg,#0878ad,#04557f)!important;color:#fff!important;padding:14px 18px!important;margin:0 0 12px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     .header-brand{display:flex!important;align-items:center!important;gap:14px!important}
     .header-brand img{display:block!important;width:68px!important;height:68px!important;border-radius:16px!important;flex:0 0 68px!important}
     .header-copy h1{font-size:22px!important;line-height:1.1!important;margin:0 0 3px!important;color:#fff!important}
@@ -1054,6 +1054,16 @@ function buildPrintPreview(){
   const temp=document.implementation.createHTMLDocument('');
   temp.replaceChild(temp.importNode(clone,true),temp.documentElement);
   syncCloneState(document,temp);
+  // Kopfbereich explizit aus dem aktuellen Formular übernehmen.
+  // Damit bleibt er auch dann in der Vorschau, wenn ein geklonter
+  // Dokumentzustand ihn nicht zuverlässig enthält.
+  const liveHeader=document.querySelector('body > header');
+  if(liveHeader){
+    temp.querySelector('body > header')?.remove();
+    const previewHeader=temp.importNode(liveHeader,true);
+    previewHeader.style.cssText='display:block!important;position:static!important;visibility:visible!important;';
+    temp.body.insertBefore(previewHeader,temp.body.firstChild);
+  }
   const checkedArt=document.querySelector('input[name="art"]:checked')?.value||"";
   const grund=temp.querySelector('main section.card');
   if(grund && checkedArt){
@@ -1086,7 +1096,7 @@ function buildPrintPreview(){
     .output-empty-row{display:none!important}
     html,body{background:#fff!important;margin:0!important;padding:0!important}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important}
-    header{display:block!important;background:linear-gradient(135deg,#0878ad,#04557f)!important;color:#fff!important;padding:14px 18px!important;margin:0 0 12px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    header{display:block!important;position:static!important;visibility:visible!important;background:linear-gradient(135deg,#0878ad,#04557f)!important;color:#fff!important;padding:14px 18px!important;margin:0 0 12px!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     .header-brand{display:flex!important;align-items:center!important;gap:14px!important}
     .header-brand img{display:block!important;width:68px!important;height:68px!important;border-radius:16px!important;flex:0 0 68px!important}
     .header-copy h1{font-size:22px!important;line-height:1.1!important;margin:0 0 3px!important;color:#fff!important}
